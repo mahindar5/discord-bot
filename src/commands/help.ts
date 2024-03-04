@@ -15,5 +15,5 @@ export const data = new SlashCommandBuilder()
 			.setDescription('Info about the server'));
 
 export async function execute(interaction: CommandInteraction) {
-	await interaction.reply(`help server reply from ${location.href}`);
+	await interaction.reply(`help server reply from ${location?.href}`);
 }
