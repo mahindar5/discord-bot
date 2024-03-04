@@ -1,6 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { CommandInteraction } from 'discord.js';
-import * as os from 'os';
 
 export const data = new SlashCommandBuilder()
 	.setName('help')
@@ -16,5 +15,12 @@ export const data = new SlashCommandBuilder()
 			.setDescription('Info about the server'));
 
 export async function execute(interaction: CommandInteraction) {
-	await interaction.reply(`help server reply from ${os?.hostname()}`);
+	let hostname;
+
+	try {
+		hostname = window.location.hostname;
+	} catch (e) {
+		hostname = '';
+	}
+	await interaction.reply(`help server reply from window.location.hostname ${hostname}`);
 }
