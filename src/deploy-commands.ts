@@ -3,9 +3,10 @@ import { Routes } from 'discord-api-types/v9';
 import config from './config';
 import { SlashCommandBuilder } from '@discordjs/builders';
 import * as commandModules from './commands';
-
+import { SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
 type Command = {
-	data: SlashCommandBuilder | Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
+	data: SlashCommandBuilder | Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'> | SlashCommandSubcommandsOnlyBuilder;
+	channel?: string;
 }
 
 const commands = [];
@@ -17,5 +18,5 @@ for (const module of Object.values<Command>(commandModules)) {
 const rest = new REST({ version: '9' }).setToken(config.DISCORD_TOKEN);
 
 rest.put(Routes.applicationGuildCommands(config.CLIENT_ID, config.GUILD_ID), { body: commands }).then(() => {
-	console.log('Success fully');
+	console.log('Successfully');
 });
