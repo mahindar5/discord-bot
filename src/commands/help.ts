@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { CommandInteraction } from 'discord.js';
+import config from '../config';
 
 export const data = new SlashCommandBuilder()
 	.setName('help')
@@ -22,5 +23,5 @@ export async function execute(interaction: CommandInteraction) {
 	} catch (e) {
 		hostname = '';
 	}
-	await interaction.reply(`help server reply from window.location.hostname ${hostname}`);
+	await interaction.reply(`help server reply from window.location.hostname ${config.RENDER_DISCOVERY_SERVICE}`);
 }
