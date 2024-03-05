@@ -24,8 +24,8 @@ if (!USER_EMAIL || !USER_PASSWORD || !URL || !SCHEDULE_NUMBER || !CENTER_NUMBER)
 let HOSTNAME: string = '';
 if (RENDER_DISCOVERY_SERVICE) {
 	HOSTNAME = RENDER_DISCOVERY_SERVICE;
-} else if (process.env.NODEMON) {
-	HOSTNAME = 'localhost';
+} else {
+	HOSTNAME = process.env.COMPUTERNAME ?? 'Unknown Hostname';
 }
 
 export default {
