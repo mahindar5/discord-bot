@@ -78,7 +78,7 @@ class CineplexHelper {
 			},
 		});
 
-		if (!response.ok) {
+		if (response.status !== 200) {
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
 		const json = await response.json();
