@@ -42,7 +42,7 @@ class USVisaDatesTasker {
 				if ('error' in dates) throw new Error(dates.error);
 			}
 
-			const availableDates = dates.map(date => date.date).join(',');
+			const availableDates = dates.map(date => date.date).join('\n');
 			console.log(`${new Date().toLocaleString()}: Dates: ${availableDates}`);
 			this.sendMessageToChannel(datesChannelId, availableDates);
 
@@ -51,7 +51,7 @@ class USVisaDatesTasker {
 			const earliestDate = sortedDates.length > 0 ? sortedDates[0].date : null;
 
 			if (earliestDate) {
-				this.alert(earliestDate, sortedDates.map(date => date.date).join(', '), '');
+				this.alert(earliestDate, sortedDates.map(date => date.date).join('\n'), '');
 				// let times = await this.getTimes(earliestDate);
 
 				// if ('error' in times) {
