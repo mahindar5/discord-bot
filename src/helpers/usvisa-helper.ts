@@ -30,7 +30,7 @@ class USVisaDatesTasker {
 	async run() {
 		try {
 			if (!this.isMonitoring) {
-				setTimeout(this.run.bind(this), this.retryTime);
+				this.scheduleNextRun();
 				return;
 			}
 
@@ -39,50 +39,45 @@ class USVisaDatesTasker {
 			if ('error' in dates) {
 				await this.signIn();
 				dates = await this.getDays();
-				if ('error' in dates) throw new Error(dates.error);
 			}
 
-			const availableDates = dates.map(date => date.date).join('\n');
-			console.log(`${new Date().toLocaleString()}: Dates: ${availableDates}`);
-			this.sendMessageToChannel(datesChannelId, [{
-				name: 'Available dates',
-				value: availableDates || 'No dates available',
-			}]);
-
-			// Filter dates that are less than the desired date, sort them in ascending order and select the first one
-			const sortedDates = dates.filter(date => date.date < this.desiredDate).sort((a, b) => a.date - b.date);
-			const earliestDate = sortedDates.length > 0 ? sortedDates[0].date : null;
-
-			if (earliestDate) {
-				this.alert(earliestDate, sortedDates.map(date => date.date).join('\n'), '');
-				// let times = await this.getTimes(earliestDate);
-
-				// if ('error' in times) {
-				// 	await this.signIn();
-				// 	times = await this.getTimes(earliestDate);
-				// 	if ('error' in times) throw new Error(times.error);
-				// }
-
-				// const { available_times, business_times } = times;
-
-				// if (available_times.length > 0) {
-				// 	this.alert(earliestDate, sortedDates.map(date => date.date).join(', '), available_times.join(', '));
-				// }
-			}
-
-			setTimeout(this.run.bind(this), this.retryTime);
+			this.processDates(dates);
+			this.scheduleNextRun();
 		} catch (error) {
-			const err = error as Error;
-			const message = err.message;
-			console.error(`${new Date().toLocaleString()}: ${message}`, error);
-			this.sendMessageToChannel(errorChannelId, [{ name: err.name, value: err.message }]);
-			setTimeout(this.run.bind(this), 5 * this.retryTime);
+			this.handleError(error as Error);
+			this.scheduleNextRun(5);
 		}
+	}
+
+	private scheduleNextRun(multiplier = 1) {
+		setTimeout(this.run.bind(this), multiplier * this.retryTime);
+	}
+
+	private processDates(dates: DateResponse) {
+		if ('error' in dates) throw new Error(dates.error);
+		const availableDates = dates.map(date => date.date).join('\n');
+		this.sendMessageToChannel(datesChannelId, [{ name: 'Available dates', value: availableDates || 'No dates available' }]);
+
+		const sortedDates = dates.filter(date => date.date < this.desiredDate).sort((a, b) => a.date - b.date);
+		const earliestDate = sortedDates.length > 0 ? sortedDates[0].date : null;
+
+		if (earliestDate) {
+			this.sendMessageToChannel(earliestDateChannelId, [
+				{ name: 'Earliest date', value: earliestDate },
+				// { name: 'Available times', value: availableTimesStr },
+				{ name: 'Available dates', value: sortedDates.map(date => date.date).join('\n') },
+			]);
+		}
+	}
+
+	private handleError(error: Error) {
+		this.sendMessageToChannel(errorChannelId, [{ name: error.name, value: error.message }]);
 	}
 
 	private sendMessageToChannel(channelId: string, fieldsList: { name: string; value: string }[]) {
 		const pstTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 		const msgEmbed = new EmbedBuilder();
+		console.log(`${pstTime}: ${fieldsList.map(field => `${field.name}: ${field.value}`).join(', ')}`);
 		fieldsList.forEach(field => {
 			msgEmbed.addFields(
 				{ name: field.name, value: field.value },
@@ -90,28 +85,6 @@ class USVisaDatesTasker {
 		});
 		const textChannel = discordClient.channels.cache.get(channelId) as TextChannel;
 		textChannel?.send({ embeds: [msgEmbed] });
-	}
-
-	/**
-	 * @param {string} earliestDate
-	 * @param {string} availableDatesStr
-	 * @param {string} availableTimesStr
-	 * @description Alert the user about the available dates and times
-	 */
-	alert(earliestDate: string, availableDatesStr: string, availableTimesStr: string) {
-		// new Audio('assets/audio/Default.mp3').play();
-		// setTimeout(() => {
-		// 	new Audio('assets/audio/Default.mp3').play();
-		// }, 2000);
-
-		const message = `Earliest date: ${earliestDate}\nAvailable times: ${availableTimesStr}\nAvailable dates: ${availableDatesStr}`;
-		const pstTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-		console.log(`${pstTime}: ${message}`);
-		this.sendMessageToChannel(earliestDateChannelId, [
-			{ name: 'Earliest date', value: earliestDate },
-			// { name: 'Available times', value: availableTimesStr },
-			{ name: 'Available dates', value: availableDatesStr },
-		]);
 	}
 
 	/**
@@ -125,36 +98,42 @@ class USVisaDatesTasker {
 	async signIn() {
 		const signinurl = `${this.config.url}/en-ca/niv/users/sign_in`;
 
-		const response = await fetch(signinurl);
-		this.updateCookies(response);
-
-		// const csrfToken = new DOMParser()
-		// 	.parseFromString(await response.text(), 'text/html')
-		// 	?.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-		// get crsf token from the response using regex <meta name="csrf-token" content="(.+?)">
+		const response = await this.fetchUrl(signinurl);
 		const textHtml = await response.text();
 		const csrfToken = textHtml.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]*)"[^>]*>/)?.[1];
-		const response2 = await fetch(signinurl, {
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-				'x-requested-with': 'XMLHttpRequest',
-				'x-csrf-token': csrfToken,
-				Origin: 'https://ais.usvisa-info.com',
-				'Sec-Fetch-Site': 'same-origin',
-				Cookie: this.setCookies,
-			} as HeadersInit,
-			body: `user%5Bemail%5D=${encodeURIComponent(this.config.userEmail)}&user%5Bpassword%5D=${encodeURIComponent(this.config.userPassword)}&policy_confirmed=1&commit=Sign+In`,
-			method: 'POST',
-		});
-		this.updateCookies(response2);
+
+		if (!csrfToken) {
+			throw new Error('CSRF token not found');
+		}
+
+		const headers = this.createHeaders(csrfToken);
+		const body = `user%5Bemail%5D=${encodeURIComponent(this.config.userEmail)}&user%5Bpassword%5D=${encodeURIComponent(this.config.userPassword)}&policy_confirmed=1&commit=Sign+In`;
+		const response2 = await this.fetchUrl(signinurl, 'POST', headers, body);
+
 		const sessionId = response2.headers.get('Session-Id');
 		const email = response2.headers.get('X-Yatri-Email');
 		if (sessionId && email) {
 			console.log(`${new Date().toLocaleString()}: Sign in successful `);
 			return true;
 		}
+		throw new Error('Sign in failed');
+	}
 
-		return false;
+	private async fetchUrl(url: string, method = 'GET', headers?: HeadersInit, body?: string) {
+		const response = await fetch(url, { method, headers, body });
+		this.updateCookies(response);
+		return response;
+	}
+
+	private createHeaders(csrfToken: string): HeadersInit {
+		return {
+			'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+			'x-requested-with': 'XMLHttpRequest',
+			'x-csrf-token': csrfToken,
+			Origin: 'https://ais.usvisa-info.com',
+			'Sec-Fetch-Site': 'same-origin',
+			Cookie: this.setCookies,
+		};
 	}
 
 	private updateCookies(response: Response) {
