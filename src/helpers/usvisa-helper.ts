@@ -1,13 +1,11 @@
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
+import { availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId } from '../constants/USVisaChannelIds';
 import { DateResponse } from '../types/DateResponse';
 import { TimeResponse } from '../types/TimeResponse';
 import { USVisaConfiguration } from '../types/USVisaConfig';
 
-const datesChannelId = '1214355558413377556';
-const earliestDateChannelId = '1214355844947513345';
-const errorChannelId = '1214355927872970863';
 class USVisaDatesTasker {
 	configuration: USVisaConfiguration;
 	client: Client<boolean>;
@@ -27,7 +25,12 @@ class USVisaDatesTasker {
 	 * @description Run the task
 	 * @returns {Promise<void>}
 	 */
-	async monitorVisaDatesAvailability() {
+	/**
+	 * Monitors the availability of visa dates.
+	 * If monitoring is active, it fetches the available dates, processes them, and schedules the next check.
+	 * If an error occurs, it handles the error and schedules the next check after a delay.
+	 */
+	async monitorVisaDatesAvailability(): Promise<void> {
 		try {
 			if (!this.isMonitoringActive) {
 				this.scheduleNextCheck();
@@ -59,7 +62,7 @@ class USVisaDatesTasker {
 		}
 		const availableDates = datesResponse.map(date => date.date);
 		const availableDatesString = availableDates.join('\n');
-		this.sendEmbedMessageToChannel(datesChannelId, [{ name: 'Available dates ', value: availableDatesString || 'No dates available' }]);
+		this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates ', value: availableDatesString || 'No dates available' }]);
 
 		const datesBeforeTarget = availableDates.filter(date => date < this.targetDate);
 		datesBeforeTarget.sort();
@@ -67,7 +70,7 @@ class USVisaDatesTasker {
 		if (datesBeforeTarget.length > 0) {
 			const earliestAvailableDate = datesBeforeTarget[0];
 			const availableDatesBeforeTargetString = datesBeforeTarget.join('\n');
-			this.sendEmbedMessageToChannel(earliestDateChannelId, [
+			this.sendEmbedMessageToChannel(earliestAvailableDateChannelId, [
 				{ name: 'Earliest date', value: earliestAvailableDate },
 				{ name: 'Available dates', value: availableDatesBeforeTargetString },
 			]);
@@ -75,7 +78,7 @@ class USVisaDatesTasker {
 	}
 
 	private handleError(error: Error) {
-		this.sendEmbedMessageToChannel(errorChannelId, [{ name: error.name, value: error.message }]);
+		this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
 	}
 
 	private sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
@@ -84,7 +87,12 @@ class USVisaDatesTasker {
 
 		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
 		const targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
-		targetChannel?.send({ embeds: [embedMessage] });
+
+		if (targetChannel) {
+			targetChannel.send({ embeds: [embedMessage] });
+		} else {
+			console.error(`${pacificStandardTime}: Channel with id ${channelId} not found`);
+		}
 	}
 
 	private createEmbedMessageWithFields(messageFields: { name: string; value: string }[], pacificStandardTime: string) {
@@ -105,22 +113,28 @@ class USVisaDatesTasker {
 	 * url: https://ais.usvisa-info.com/en-ca/niv/users/sign_in
 	 */
 	async signIn() {
-		const signinurl = `${this.configuration.url}/en-ca/niv/users/sign_in`;
+		const signInUrl = `${this.configuration.url}/en-ca/niv/users/sign_in`;
 
-		const response = await this.fetchUrl(signinurl);
-		const textHtml = await response.text();
-		const csrfToken = textHtml.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]*)"[^>]*>/)?.[1];
+		const initialResponse = await this.fetchUrl(signInUrl);
+		const htmlResponse = await initialResponse.text();
+		const csrfToken = htmlResponse.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]*)"[^>]*>/)?.[1];
 
 		if (!csrfToken) {
 			throw new Error('CSRF token not found');
 		}
 
 		const headers = this.createHeaders(csrfToken);
-		const body = `user%5Bemail%5D=${encodeURIComponent(this.configuration.userEmail)}&user%5Bpassword%5D=${encodeURIComponent(this.configuration.userPassword)}&policy_confirmed=1&commit=Sign+In`;
-		const response2 = await this.fetchUrl(signinurl, 'POST', headers, body);
+		const body = new URLSearchParams({
+			'user[email]': this.configuration.userEmail,
+			'user[password]': this.configuration.userPassword,
+			policy_confirmed: '1',
+			commit: 'Sign In',
+		}).toString();
 
-		const sessionId = response2.headers.get('Session-Id');
-		const email = response2.headers.get('X-Yatri-Email');
+		const signInResponse = await this.fetchUrl(signInUrl, 'POST', headers, body);
+
+		const sessionId = signInResponse.headers.get('Session-Id');
+		const email = signInResponse.headers.get('X-Yatri-Email');
 		if (sessionId && email) {
 			console.log(`${new Date().toLocaleString()}: Sign in successful `);
 			return true;
