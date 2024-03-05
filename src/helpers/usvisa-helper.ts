@@ -62,7 +62,7 @@ class USVisaDatesTasker {
 		}
 		const availableDates = datesResponse.map(date => date.date);
 		const availableDatesString = availableDates.join('\n');
-		this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates ', value: availableDatesString || 'No dates available' }]);
+		this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates', value: availableDatesString || 'No dates available' }]);
 
 		const datesBeforeTarget = availableDates.filter(date => date < this.targetDate);
 		datesBeforeTarget.sort();
@@ -170,26 +170,30 @@ class USVisaDatesTasker {
 	 * @description Fetch data from the given endpoint
 	 */
 
-	async fetchEndpoint(endpoint: string) {
+	async fetchEndpoint(endpoint: string, ignore401 = false) {
 		const fullUrl = `${this.configuration.url}${endpoint}`;
 		const headers = { ...this.defaultHeaders, Cookie: this.cookieData } as HeadersInit;
 
-		const response = await this.fetchResource(fullUrl, 'GET', headers);
+		const response = await this.fetchResource(fullUrl, 'GET', headers, undefined, ignore401);
 		const data = await response.json();
 		return data;
 	}
 
-	private async fetchResource(url: string, method: string = 'GET', headers?: HeadersInit, body?: string): Promise<Response> {
+	private async fetchResource(url: string, method: string = 'GET', headers?: HeadersInit, body?: string, ignore401: boolean = false): Promise<Response> {
 		const fetchOptions: RequestInit = { method, headers, body };
 		const fetchResponse = await fetch(url, fetchOptions);
 
 		if (!fetchResponse.ok) {
-			throw new Error([
-				'Network response was not ok',
-				`url: ${url}`,
-				`status: ${fetchResponse.status}`,
-				`statusText: ${fetchResponse.statusText}`,
-			].join('\n'));
+			if (fetchResponse.status === 401 && ignore401) {
+				// Ignore 401 status
+			} else {
+				throw new Error([
+					'Network response was not ok',
+					`url: ${url}`,
+					`status: ${fetchResponse.status}`,
+					`statusText: ${fetchResponse.statusText}`,
+				].join('\n'));
+			}
 		}
 
 		this.updateCookies(fetchResponse);
@@ -212,7 +216,7 @@ class USVisaDatesTasker {
 	 */
 	getTimes(date: string): Promise<TimeResponse> {
 		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/times/${this.configuration.centerNumber}.json?date=${date}&appointments[expedite]=false`;
-		return this.fetchEndpoint(endpoint);
+		return this.fetchEndpoint(endpoint, true);
 	}
 
 	/**
@@ -228,7 +232,7 @@ class USVisaDatesTasker {
 	 */
 	fetchAvailableDates(): Promise<DateResponse> {
 		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
-		return this.fetchEndpoint(endpoint);
+		return this.fetchEndpoint(endpoint, true);
 	}
 
 	async signOut() {
