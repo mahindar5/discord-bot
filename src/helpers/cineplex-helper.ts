@@ -21,29 +21,33 @@ class CineplexHelper {
 
 			const cineplexes: any[] = await this.getCineplexes();
 
-			this.processCineplexes(cineplexes);
+			await this.processCineplexes(cineplexes);
 			this.scheduleNextCheck();
 		} catch (error) {
-			this.handleError(error as Error);
+			await this.handleError(error as Error);
 			this.scheduleNextCheck(5);
 		}
 	}
 
-	private processCineplexes(cineplexes: any[]) {
+	private async processCineplexes(cineplexes: any[]) {
 		let title = `Cineplexes shows are available on ${this.showDate}!`;
 		if (cineplexes.length === 0) {
 			title = 'Cineplexes shows are not available on !';
 		}
 
-		this.sendEmbedMessageToChannel(availableBookingsChannelId, [{ name: 'Status', value: title }]);
+		await this.sendEmbedMessageToChannel(availableBookingsChannelId, [{ name: 'Status', value: title }]);
 	}
 
-	private sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
+	private async sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
 		const pacificStandardTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 		console.log(`${pacificStandardTime}: ${messageFields.map(field => `${field.name}: ${field.value}`).join(', ')}`);
 
 		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
-		const targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
+		let targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
+
+		if (!targetChannel) {
+			targetChannel = await discordClient.channels.fetch('1214654281127563325') as TextChannel;
+		}
 
 		if (targetChannel) {
 			targetChannel.send({ embeds: [embedMessage] });
@@ -61,8 +65,8 @@ class CineplexHelper {
 		return embedMessage;
 	}
 
-	private handleError(error: Error) {
-		this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
+	private async handleError(error: Error) {
+		await this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
 	}
 
 	private scheduleNextCheck(delay: number = 1) {
