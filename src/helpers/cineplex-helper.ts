@@ -42,7 +42,7 @@ class CineplexHelper {
 		console.error(error);
 	}
 
-	private scheduleNextCheck(delay: number = 10) {
+	private scheduleNextCheck(delay: number = 1) {
 		setTimeout(() => {
 			this.monitorCineplexesAvailability();
 		}, delay * 1000);
