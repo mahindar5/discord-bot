@@ -104,7 +104,8 @@ class USVisaDatesTasker {
 		// }, 2000);
 
 		const message = `Earliest date: ${earliestDate}\nAvailable times: ${availableTimesStr}\nAvailable dates: ${availableDatesStr}`;
-		console.log(`${new Date().toLocaleString()}: ${message}`);
+		const pstTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+		console.log(`${pstTime}: ${message}`);
 		this.sendMessageToChannel(earliestDateChannelId, [
 			{ name: 'Earliest date', value: earliestDate },
 			// { name: 'Available times', value: availableTimesStr },
