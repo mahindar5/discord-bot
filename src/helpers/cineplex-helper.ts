@@ -68,7 +68,7 @@ class CineplexHelper {
 	private scheduleNextCheck(delay: number = 1) {
 		setTimeout(() => {
 			this.monitorCineplexesAvailability();
-		}, delay * 1000);
+		}, delay * 60000);
 	}
 
 	public async getCineplexes() {
