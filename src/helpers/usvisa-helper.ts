@@ -81,11 +81,12 @@ class USVisaDatesTasker {
 	}
 
 	private sendMessageToChannel(channelId: string, fieldsList: { name: string; value: string }[]) {
+		const pstTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 		const msgEmbed = new EmbedBuilder();
 		fieldsList.forEach(field => {
 			msgEmbed.addFields(
 				{ name: field.name, value: field.value },
-			).setFooter({ text: `${globalConfig.HOSTNAME} ${new Date().toLocaleString()}` });
+			).setFooter({ text: `${globalConfig.HOSTNAME} ${pstTime}` });
 		});
 		const textChannel = discordClient.channels.cache.get(channelId) as TextChannel;
 		textChannel?.send({ embeds: [msgEmbed] });
