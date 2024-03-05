@@ -3,16 +3,39 @@ import { config as dotenvConfig } from 'dotenv';
 dotenvConfig();
 
 const {
-	DISCORD_TOKEN, GUILD_ID, CLIENT_ID, RENDER_DISCOVERY_SERVICE,
+	DISCORD_TOKEN,
+	GUILD_ID,
+	CLIENT_ID,
+	RENDER_DISCOVERY_SERVICE,
+	USER_EMAIL,
+	USER_PASSWORD,
+	URL,
+	SCHEDULE_NUMBER,
+	CENTER_NUMBER,
 } = process.env;
 
 if (!DISCORD_TOKEN || !GUILD_ID || !CLIENT_ID) {
 	throw new Error('Missing environment variables');
+}
+if (!USER_EMAIL || !USER_PASSWORD || !URL || !SCHEDULE_NUMBER || !CENTER_NUMBER) {
+	throw new Error('Missing environment variables');
+}
+
+let HOSTNAME: string = '';
+if (RENDER_DISCOVERY_SERVICE) {
+	HOSTNAME = RENDER_DISCOVERY_SERVICE;
+} else if (process.env.NODEMON) {
+	HOSTNAME = 'localhost';
 }
 
 export default {
 	DISCORD_TOKEN,
 	GUILD_ID,
 	CLIENT_ID,
-	RENDER_DISCOVERY_SERVICE,
+	HOSTNAME,
+	USER_EMAIL,
+	USER_PASSWORD,
+	URL,
+	SCHEDULE_NUMBER,
+	CENTER_NUMBER,
 };

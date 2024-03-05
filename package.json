@@ -1,33 +1,34 @@
 {
-  "name": "discord-bot",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "start": "tsc && node build/index.js",
-    "dev": "concurrently \"tsc -w\" \"nodemon build/index.js\"",
-	"deploy:commands": "tsc && node build/deploy-commands.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mahindar5/discord-bot.git"
-  },
-  "author": "mahindar",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/mahindar5/discord-bot/issues"
-  },
-  "homepage": "https://github.com/mahindar5/discord-bot#readme",
-  "dependencies": {
-    "discord.js": "^14.14.1",
-    "dotenv": "^16.4.5"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "nodemon": "^3.1.0",
-    "typescript": "^5.3.3",
-    "typescript-eslint": "^7.1.0"
-  }
+	"name": "discord-bot",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "tsc",
+		"run": "node build/index.js",
+		"start": "tsc && node build/index.js",
+		"dev": "concurrently \"tsc -w\" \"nodemon build/index.js\"",
+		"deploycmds": "tsc && node build/deploy-commands.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/mahindar5/discord-bot.git"
+	},
+	"author": "mahindar",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/mahindar5/discord-bot/issues"
+	},
+	"homepage": "https://github.com/mahindar5/discord-bot#readme",
+	"dependencies": {
+		"discord.js": "^14.14.1",
+		"dotenv": "^16.4.5"
+	},
+	"devDependencies": {
+		"concurrently": "^8.2.2",
+		"nodemon": "^3.1.0",
+		"typescript": "^5.3.3",
+		"typescript-eslint": "^7.1.0"
+	}
 }

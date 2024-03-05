@@ -2,4 +2,8 @@
     "editor.detectIndentation": false,
     "editor.tabSize": 4,
     "editor.insertSpaces": false,
+	"editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit"
+    }
 }
