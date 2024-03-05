@@ -1,4 +1,4 @@
-import { Client, TextChannel } from 'discord.js';
+import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
 import { DateResponse } from '../types/DateResponse';
@@ -44,7 +44,10 @@ class USVisaDatesTasker {
 
 			const availableDates = dates.map(date => date.date).join('\n');
 			console.log(`${new Date().toLocaleString()}: Dates: ${availableDates}`);
-			this.sendMessageToChannel(datesChannelId, availableDates);
+			this.sendMessageToChannel(datesChannelId, [{
+				name: 'Available dates',
+				value: availableDates,
+			}]);
 
 			// Filter dates that are less than the desired date, sort them in ascending order and select the first one
 			const sortedDates = dates.filter(date => date.date < this.desiredDate).sort((a, b) => a.date - b.date);
@@ -69,16 +72,23 @@ class USVisaDatesTasker {
 
 			setTimeout(this.run.bind(this), this.retryTime);
 		} catch (error) {
-			const message = (error as Error).message;
+			const err = error as Error;
+			const message = err.message;
 			console.error(`${new Date().toLocaleString()}: ${message}`, error);
-			this.sendMessageToChannel(errorChannelId, message);
+			this.sendMessageToChannel(errorChannelId, [{ name: err.name, value: err.message }]);
 			setTimeout(this.run.bind(this), 5 * this.retryTime);
 		}
 	}
 
-	private sendMessageToChannel(channelId: string, message: string) {
+	private sendMessageToChannel(channelId: string, fieldsList: { name: string; value: string }[]) {
+		const msgEmbed = new EmbedBuilder();
+		fieldsList.forEach(field => {
+			msgEmbed.addFields(
+				{ name: field.name, value: field.value },
+			).setFooter({ text: `${globalConfig.HOSTNAME} ${new Date().toLocaleString()}` });
+		});
 		const textChannel = discordClient.channels.cache.get(channelId) as TextChannel;
-		textChannel?.send(`${globalConfig.HOSTNAME}\n\n${message}`);
+		textChannel?.send({ embeds: [msgEmbed] });
 	}
 
 	/**
@@ -95,7 +105,11 @@ class USVisaDatesTasker {
 
 		const message = `Earliest date: ${earliestDate}\nAvailable times: ${availableTimesStr}\nAvailable dates: ${availableDatesStr}`;
 		console.log(`${new Date().toLocaleString()}: ${message}`);
-		this.sendMessageToChannel(earliestDateChannelId, message);
+		this.sendMessageToChannel(earliestDateChannelId, [
+			{ name: 'Earliest date', value: earliestDate },
+			// { name: 'Available times', value: availableTimesStr },
+			{ name: 'Available dates', value: availableDatesStr },
+		]);
 	}
 
 	/**
