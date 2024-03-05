@@ -46,7 +46,7 @@ class CineplexHelper {
 		let targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
 
 		if (!targetChannel) {
-			targetChannel = await discordClient.channels.fetch('1214654281127563325') as TextChannel;
+			targetChannel = await discordClient.channels.fetch(channelId) as TextChannel;
 		}
 
 		if (targetChannel) {
