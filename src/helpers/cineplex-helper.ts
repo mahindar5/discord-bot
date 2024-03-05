@@ -1,12 +1,14 @@
-import { Client, TextChannel } from 'discord.js';
+import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
+import globalConfig from '../config';
 import { availableBookingsChannelId } from '../constants/CineplexChannelId';
+import { errorReportingChannelId } from '../constants/USVisaChannelIds';
 
 class CineplexHelper {
 	isMonitoringActive: boolean = true;
 	client: Client<boolean>;
 	showDate = '3/9/2024';
-
+	status = 'available';
 	constructor(client: Client) {
 		this.client = client;
 	}
@@ -34,12 +36,34 @@ class CineplexHelper {
 			title = 'Cineplexes shows are not available on !';
 		}
 
-		const textChannel = this.client.channels.cache.get(availableBookingsChannelId) as TextChannel;
-		textChannel.send({ embeds: [{ title }] });
+		this.sendEmbedMessageToChannel(availableBookingsChannelId, [{ name: 'Status', value: title }]);
+	}
+
+	private sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
+		const pacificStandardTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+		console.log(`${pacificStandardTime}: ${messageFields.map(field => `${field.name}: ${field.value}`).join(', ')}`);
+
+		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
+		const targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
+
+		if (targetChannel) {
+			targetChannel.send({ embeds: [embedMessage] });
+		} else {
+			console.error(`${pacificStandardTime}: Channel with id ${channelId} not found`);
+		}
+	}
+
+	private createEmbedMessageWithFields(messageFields: { name: string; value: string }[], pacificStandardTime: string) {
+		const embedMessage = new EmbedBuilder();
+		messageFields.forEach(field => {
+			embedMessage.addFields({ name: field.name, value: field.value })
+				.setFooter({ text: `${globalConfig.HOSTNAME} ${pacificStandardTime}` });
+		});
+		return embedMessage;
 	}
 
 	private handleError(error: Error) {
-		console.error(error);
+		this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
 	}
 
 	private scheduleNextCheck(delay: number = 1) {
