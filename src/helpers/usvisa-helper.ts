@@ -3,23 +3,23 @@ import { client as discordClient } from '../client';
 import globalConfig from '../config';
 import { DateResponse } from '../types/DateResponse';
 import { TimeResponse } from '../types/TimeResponse';
-import { USVisaConfig } from '../types/USVisaConfig';
+import { USVisaConfiguration } from '../types/USVisaConfig';
 
 const datesChannelId = '1214355558413377556';
 const earliestDateChannelId = '1214355844947513345';
 const errorChannelId = '1214355927872970863';
 class USVisaDatesTasker {
-	config: USVisaConfig;
+	configuration: USVisaConfiguration;
 	client: Client<boolean>;
 	desiredDate: string = '2024-12-31';
-	retryTime: number = 60000;
-	commonHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
-	isMonitoring: boolean = true;
-	setCookies: string = '';
+	retryInterval: number = 60000;
+	defaultHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
+	monitoringStatus: boolean = true;
+	cookieData: string = '';
 
-	constructor(client: Client, config: USVisaConfig) {
+	constructor(client: Client, config: USVisaConfiguration) {
 		this.client = client;
-		this.config = config;
+		this.configuration = config;
 	}
 
 	/**
@@ -29,7 +29,7 @@ class USVisaDatesTasker {
 	 */
 	async run() {
 		try {
-			if (!this.isMonitoring) {
+			if (!this.monitoringStatus) {
 				this.scheduleNextRun();
 				return;
 			}
@@ -50,41 +50,45 @@ class USVisaDatesTasker {
 	}
 
 	private scheduleNextRun(multiplier = 1) {
-		setTimeout(this.run.bind(this), multiplier * this.retryTime);
+		setTimeout(this.run.bind(this), multiplier * this.retryInterval);
 	}
 
 	private processDates(dates: DateResponse) {
 		if ('error' in dates) throw new Error(dates.error);
 		const availableDates = dates.map(date => date.date).join('\n');
-		this.sendMessageToChannel(datesChannelId, [{ name: 'Available dates', value: availableDates || 'No dates available' }]);
+		this.sendEmbedMessageToChannel(datesChannelId, [{ name: 'Available dates', value: availableDates || 'No dates available' }]);
 
 		const sortedDates = dates.filter(date => date.date < this.desiredDate).sort((a, b) => a.date - b.date);
 		const earliestDate = sortedDates.length > 0 ? sortedDates[0].date : null;
 
 		if (earliestDate) {
-			this.sendMessageToChannel(earliestDateChannelId, [
+			this.sendEmbedMessageToChannel(earliestDateChannelId, [
 				{ name: 'Earliest date', value: earliestDate },
-				// { name: 'Available times', value: availableTimesStr },
 				{ name: 'Available dates', value: sortedDates.map(date => date.date).join('\n') },
 			]);
 		}
 	}
 
 	private handleError(error: Error) {
-		this.sendMessageToChannel(errorChannelId, [{ name: error.name, value: error.message }]);
+		this.sendEmbedMessageToChannel(errorChannelId, [{ name: error.name, value: error.message }]);
 	}
 
-	private sendMessageToChannel(channelId: string, fieldsList: { name: string; value: string }[]) {
-		const pstTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-		const msgEmbed = new EmbedBuilder();
-		console.log(`${pstTime}: ${fieldsList.map(field => `${field.name}: ${field.value}`).join(', ')}`);
-		fieldsList.forEach(field => {
-			msgEmbed.addFields(
-				{ name: field.name, value: field.value },
-			).setFooter({ text: `${globalConfig.HOSTNAME} ${pstTime}` });
+	private sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
+		const pacificStandardTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+		console.log(`${pacificStandardTime}: ${messageFields.map(field => `${field.name}: ${field.value}`).join(', ')}`);
+
+		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
+		const targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
+		targetChannel?.send({ embeds: [embedMessage] });
+	}
+
+	private createEmbedMessageWithFields(messageFields: { name: string; value: string }[], pacificStandardTime: string) {
+		const embedMessage = new EmbedBuilder();
+		messageFields.forEach(field => {
+			embedMessage.addFields({ name: field.name, value: field.value })
+				.setFooter({ text: `${globalConfig.HOSTNAME} ${pacificStandardTime}` });
 		});
-		const textChannel = discordClient.channels.cache.get(channelId) as TextChannel;
-		textChannel?.send({ embeds: [msgEmbed] });
+		return embedMessage;
 	}
 
 	/**
@@ -96,7 +100,7 @@ class USVisaDatesTasker {
 	 * url: https://ais.usvisa-info.com/en-ca/niv/users/sign_in
 	 */
 	async signIn() {
-		const signinurl = `${this.config.url}/en-ca/niv/users/sign_in`;
+		const signinurl = `${this.configuration.url}/en-ca/niv/users/sign_in`;
 
 		const response = await this.fetchUrl(signinurl);
 		const textHtml = await response.text();
@@ -107,7 +111,7 @@ class USVisaDatesTasker {
 		}
 
 		const headers = this.createHeaders(csrfToken);
-		const body = `user%5Bemail%5D=${encodeURIComponent(this.config.userEmail)}&user%5Bpassword%5D=${encodeURIComponent(this.config.userPassword)}&policy_confirmed=1&commit=Sign+In`;
+		const body = `user%5Bemail%5D=${encodeURIComponent(this.configuration.userEmail)}&user%5Bpassword%5D=${encodeURIComponent(this.configuration.userPassword)}&policy_confirmed=1&commit=Sign+In`;
 		const response2 = await this.fetchUrl(signinurl, 'POST', headers, body);
 
 		const sessionId = response2.headers.get('Session-Id');
@@ -132,12 +136,12 @@ class USVisaDatesTasker {
 			'x-csrf-token': csrfToken,
 			Origin: 'https://ais.usvisa-info.com',
 			'Sec-Fetch-Site': 'same-origin',
-			Cookie: this.setCookies,
+			Cookie: this.cookieData,
 		};
 	}
 
 	private updateCookies(response: Response) {
-		this.setCookies = response.headers.get('set-cookie') ?? '';
+		this.cookieData = response.headers.get('set-cookie') ?? '';
 	}
 
 	/**
@@ -148,8 +152,8 @@ class USVisaDatesTasker {
 	 */
 
 	async fetchEndpoint(endpoint: string) {
-		const response = await fetch(`${this.config.url}${endpoint}`, {
-			headers: { ...this.commonHeaders, Cookie: this.setCookies } as HeadersInit,
+		const response = await fetch(`${this.configuration.url}${endpoint}`, {
+			headers: { ...this.defaultHeaders, Cookie: this.cookieData } as HeadersInit,
 		});
 		this.updateCookies(response);
 		const data = await response.json();
@@ -171,7 +175,7 @@ class USVisaDatesTasker {
 	 * {"error":"You need to sign in or sign up before continuing."}
 	 */
 	getTimes(date: string): Promise<TimeResponse> {
-		const endpoint = `/en-ca/niv/schedule/${this.config.scheduleNumber}/appointment/times/${this.config.centerNumber}.json?date=${date}&appointments[expedite]=false`;
+		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/times/${this.configuration.centerNumber}.json?date=${date}&appointments[expedite]=false`;
 		return this.fetchEndpoint(endpoint);
 	}
 
@@ -187,12 +191,12 @@ class USVisaDatesTasker {
 	 * {"error":"You need to sign in or sign up before continuing."}
 	 */
 	getDays(): Promise<DateResponse> {
-		const endpoint = `/en-ca/niv/schedule/${this.config.scheduleNumber}/appointment/days/${this.config.centerNumber}.json?appointments[expedite]=false`;
+		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
 		return this.fetchEndpoint(endpoint);
 	}
 
 	async signOut() {
-		await fetch(`${this.config.url}/en-ca/niv/users/sign_out`);
+		await fetch(`${this.configuration.url}/en-ca/niv/users/sign_out`);
 	}
 }
 

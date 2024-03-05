@@ -1,4 +1,4 @@
-export interface USVisaConfig {
+export interface USVisaConfiguration {
 	userEmail: string;
 	userPassword: string;
 	url: string;
