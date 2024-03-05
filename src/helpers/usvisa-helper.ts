@@ -115,7 +115,7 @@ class USVisaDatesTasker {
 	async signIn() {
 		const signInUrl = `${this.configuration.url}/en-ca/niv/users/sign_in`;
 
-		const initialResponse = await this.fetchUrl(signInUrl);
+		const initialResponse = await this.fetchResource(signInUrl);
 		const htmlResponse = await initialResponse.text();
 		const csrfToken = htmlResponse.match(/<meta[^>]*name="csrf-token"[^>]*content="([^"]*)"[^>]*>/)?.[1];
 
@@ -131,7 +131,7 @@ class USVisaDatesTasker {
 			commit: 'Sign In',
 		}).toString();
 
-		const signInResponse = await this.fetchUrl(signInUrl, 'POST', headers, body);
+		const signInResponse = await this.fetchResource(signInUrl, 'POST', headers, body);
 
 		const sessionId = signInResponse.headers.get('Session-Id');
 		const email = signInResponse.headers.get('X-Yatri-Email');
@@ -140,12 +140,6 @@ class USVisaDatesTasker {
 			return true;
 		}
 		throw new Error('Sign in failed');
-	}
-
-	private async fetchUrl(url: string, method = 'GET', headers?: HeadersInit, body?: string) {
-		const response = await fetch(url, { method, headers, body });
-		this.updateCookies(response);
-		return response;
 	}
 
 	private createHeaders(csrfToken: string): HeadersInit {
@@ -160,7 +154,13 @@ class USVisaDatesTasker {
 	}
 
 	private updateCookies(response: Response) {
-		this.cookieData = response.headers.get('set-cookie') ?? '';
+		const newCookieData = response.headers.get('set-cookie');
+
+		if (!newCookieData) {
+			throw new Error('No "set-cookie" header in the response');
+		}
+
+		this.cookieData = newCookieData;
 	}
 
 	/**
@@ -171,12 +171,29 @@ class USVisaDatesTasker {
 	 */
 
 	async fetchEndpoint(endpoint: string) {
-		const response = await fetch(`${this.configuration.url}${endpoint}`, {
-			headers: { ...this.defaultHeaders, Cookie: this.cookieData } as HeadersInit,
-		});
-		this.updateCookies(response);
+		const fullUrl = `${this.configuration.url}${endpoint}`;
+		const headers = { ...this.defaultHeaders, Cookie: this.cookieData } as HeadersInit;
+
+		const response = await this.fetchResource(fullUrl, 'GET', headers);
 		const data = await response.json();
 		return data;
+	}
+
+	private async fetchResource(url: string, method: string = 'GET', headers?: HeadersInit, body?: string): Promise<Response> {
+		const fetchOptions: RequestInit = { method, headers, body };
+		const fetchResponse = await fetch(url, fetchOptions);
+
+		if (!fetchResponse.ok) {
+			throw new Error([
+				'Network response was not ok',
+				`url: ${url}`,
+				`status: ${fetchResponse.status}`,
+				`statusText: ${fetchResponse.statusText}`,
+			].join('\n'));
+		}
+
+		this.updateCookies(fetchResponse);
+		return fetchResponse;
 	}
 
 	/**
@@ -219,10 +236,14 @@ class USVisaDatesTasker {
 	}
 }
 
+const {
+	USER_EMAIL: userEmail, USER_PASSWORD: userPassword, URL: url, SCHEDULE_NUMBER: scheduleNumber, CENTER_NUMBER: centerNumber,
+} = globalConfig;
+
 export default new USVisaDatesTasker(discordClient, {
-	userEmail: globalConfig.USER_EMAIL,
-	userPassword: globalConfig.USER_PASSWORD,
-	url: globalConfig.URL,
-	scheduleNumber: globalConfig.SCHEDULE_NUMBER,
-	centerNumber: globalConfig.CENTER_NUMBER,
+	userEmail,
+	userPassword,
+	url,
+	scheduleNumber,
+	centerNumber,
 });
