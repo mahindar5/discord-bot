@@ -1,8 +1,7 @@
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
-import { availableBookingsChannelId } from '../constants/CineplexChannelId';
-import { errorReportingChannelId } from '../constants/USVisaChannelIds';
+import { availableBookingsChannelId, errorReportingChannelId } from '../constants/CineplexChannelId';
 
 class CineplexHelper {
 	isMonitoringActive: boolean = true;
@@ -78,6 +77,10 @@ class CineplexHelper {
 				'Ocp-Apim-Subscription-Key': 'dcdac5601d864addbc2675a2e96cb1f8',
 			},
 		});
+
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
 		const json = await response.json();
 		return json;
 	}
