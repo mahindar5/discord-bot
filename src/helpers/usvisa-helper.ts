@@ -201,12 +201,7 @@ class USVisaDatesTasker {
 
 	private updateCookies(response: Response) {
 		const newCookieData = response.headers.get('set-cookie');
-
-		if (!newCookieData) {
-			throw new Error('No "set-cookie" header in the response');
-		}
-
-		this.cookieData = newCookieData;
+		this.cookieData = newCookieData ?? '';
 	}
 
 	private scheduleNextCheck(multiplier = 1) {
