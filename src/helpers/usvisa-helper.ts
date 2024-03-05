@@ -21,14 +21,36 @@ class USVisaDatesTasker {
 	}
 
 	/**
-	 * @memberof USVisaDatesTasker
-	 * @description Run the task
-	 * @returns {Promise<void>}
+	 * Retrieves the available appointment times for a given date.
+	 * @param date - The date for which to retrieve the appointment times.
+	 * @returns A Promise that resolves to a TimeResponse object containing the available appointment times.
 	 */
+	getTimes(date: string): Promise<TimeResponse> {
+		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/times/${this.configuration.centerNumber}.json?date=${date}&appointments[expedite]=false`;
+		return this.fetchEndpoint(endpoint, true);
+	}
+
+	/**
+	 * Retrieves the available appointment dates.
+	 * @returns A Promise that resolves to a DateResponse object containing the available appointment dates.
+	 */
+	fetchAvailableDates(): Promise<DateResponse> {
+		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
+		return this.fetchEndpoint(endpoint, true);
+	}
+
+	/**
+	 * Signs out the user from the US Visa website.
+	 * @returns {Promise<void>} A promise that resolves when the sign out is successful.
+	 */
+	async signOut() {
+		await fetch(`${this.configuration.url}/en-ca/niv/users/sign_out`);
+	}
+
 	/**
 	 * Monitors the availability of visa dates.
-	 * If monitoring is active, it fetches the available dates, processes them, and schedules the next check.
-	 * If an error occurs, it handles the error and schedules the next check after a delay.
+	 *
+	 * @returns A Promise that resolves to void.
 	 */
 	async monitorVisaDatesAvailability(): Promise<void> {
 		try {
@@ -52,10 +74,6 @@ class USVisaDatesTasker {
 		}
 	}
 
-	private scheduleNextCheck(multiplier = 1) {
-		setTimeout(this.monitorVisaDatesAvailability.bind(this), multiplier * this.retryInterval);
-	}
-
 	private processAvailableDates(datesResponse: DateResponse) {
 		if ('error' in datesResponse) {
 			throw new Error(datesResponse.error);
@@ -77,10 +95,11 @@ class USVisaDatesTasker {
 		}
 	}
 
-	private handleError(error: Error) {
-		this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
-	}
-
+	/**
+	 * Sends an embed message to a specified channel.
+	 * @param channelId - The ID of the channel to send the message to.
+	 * @param messageFields - An array of objects representing the fields of the message.
+	 */
 	private sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
 		const pacificStandardTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 		console.log(`${pacificStandardTime}: ${messageFields.map(field => `${field.name}: ${field.value}`).join(', ')}`);
@@ -105,12 +124,9 @@ class USVisaDatesTasker {
 	}
 
 	/**
-	 * @returns {Promise<boolean>}
-	 * @memberof USVisaDatesTasker
-	 * @description Sign in to the US Visa website
-	 *
-	 * @example
-	 * url: https://ais.usvisa-info.com/en-ca/niv/users/sign_in
+	 * Signs in the user to the US Visa website.
+	 * @returns A boolean indicating whether the sign in was successful.
+	 * @throws An error if the sign in failed or the CSRF token is not found.
 	 */
 	async signIn() {
 		const signInUrl = `${this.configuration.url}/en-ca/niv/users/sign_in`;
@@ -153,23 +169,6 @@ class USVisaDatesTasker {
 		};
 	}
 
-	private updateCookies(response: Response) {
-		const newCookieData = response.headers.get('set-cookie');
-
-		if (!newCookieData) {
-			throw new Error('No "set-cookie" header in the response');
-		}
-
-		this.cookieData = newCookieData;
-	}
-
-	/**
-	 * @param {string} endpoint
-	 * @returns {Promise<any>}
-	 * @memberof USVisaDatesTasker
-	 * @description Fetch data from the given endpoint
-	 */
-
 	async fetchEndpoint(endpoint: string, ignore401 = false) {
 		const fullUrl = `${this.configuration.url}${endpoint}`;
 		const headers = { ...this.defaultHeaders, Cookie: this.cookieData } as HeadersInit;
@@ -200,43 +199,22 @@ class USVisaDatesTasker {
 		return fetchResponse;
 	}
 
-	/**
-	 * @param {string} date
-	 * example: 2026-07-20
-	 * @returns {Promise<TimeResponse>}
-	 * @memberof USVisaDatesTasker
-	 * @description Get available times for the given date
-	 *
-	 * @example
-	 * url: https://ais.usvisa-info.com/en-ca/niv/schedule/56046447/appointment/times/95.json?date=2026-07-20&appointments[expedite]=false
-	 * { "available_times": [ "07:30" ], "business_times": [ "07:30" ] }
-	 * { "available_times": [], "business_times": [] }
-	 * stausCode: 401
-	 * {"error":"You need to sign in or sign up before continuing."}
-	 */
-	getTimes(date: string): Promise<TimeResponse> {
-		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/times/${this.configuration.centerNumber}.json?date=${date}&appointments[expedite]=false`;
-		return this.fetchEndpoint(endpoint, true);
+	private updateCookies(response: Response) {
+		const newCookieData = response.headers.get('set-cookie');
+
+		if (!newCookieData) {
+			throw new Error('No "set-cookie" header in the response');
+		}
+
+		this.cookieData = newCookieData;
 	}
 
-	/**
-	 * @returns {Promise<DateResponse>}
-	 * @memberof USVisaDatesTasker
-	 * @description Get available dates
-	 *
-	 * @example
-	 * url: https://ais.usvisa-info.com/en-ca/niv/schedule/56046447/appointment/days/95.json?appointments[expedite]=false
-	 * [{ "date": "2026-07-20", "business_day": true }]
-	 * stausCode: 401
-	 * {"error":"You need to sign in or sign up before continuing."}
-	 */
-	fetchAvailableDates(): Promise<DateResponse> {
-		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
-		return this.fetchEndpoint(endpoint, true);
+	private scheduleNextCheck(multiplier = 1) {
+		setTimeout(this.monitorVisaDatesAvailability.bind(this), multiplier * this.retryInterval);
 	}
 
-	async signOut() {
-		await fetch(`${this.configuration.url}/en-ca/niv/users/sign_out`);
+	private handleError(error: Error) {
+		this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
 	}
 }
 
