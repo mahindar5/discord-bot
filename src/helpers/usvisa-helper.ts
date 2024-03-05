@@ -46,7 +46,7 @@ class USVisaDatesTasker {
 			console.log(`${new Date().toLocaleString()}: Dates: ${availableDates}`);
 			this.sendMessageToChannel(datesChannelId, [{
 				name: 'Available dates',
-				value: availableDates,
+				value: availableDates || 'No dates available',
 			}]);
 
 			// Filter dates that are less than the desired date, sort them in ascending order and select the first one
