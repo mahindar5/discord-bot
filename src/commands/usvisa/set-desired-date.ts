@@ -15,6 +15,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.reply('Invalid date');
 		return;
 	}
-	usvisaHelper.desiredDate = date;
-	await interaction.reply(`Your desired US visa appointment date has been set to ${usvisaHelper.desiredDate}`);
+	usvisaHelper.targetDate = date;
+	await interaction.reply(`Your desired US visa appointment date has been set to ${usvisaHelper.targetDate}`);
 }

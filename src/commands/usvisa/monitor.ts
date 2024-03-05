@@ -14,19 +14,19 @@ export const data = new SlashCommandBuilder()
 			.setDescription('Stop monitoring for US visa appointment availability'));
 
 async function startMonitor(interaction: CommandInteraction) {
-	if (usvisaHelper.monitoringStatus) {
+	if (usvisaHelper.isMonitoringActive) {
 		await interaction.reply('Already monitoring');
 		return;
 	}
-	usvisaHelper.monitoringStatus = true;
+	usvisaHelper.isMonitoringActive = true;
 	await interaction.reply('Monitoring started');
 }
 async function stopMonitor(interaction: CommandInteraction) {
-	if (!usvisaHelper.monitoringStatus) {
+	if (!usvisaHelper.isMonitoringActive) {
 		await interaction.reply('Not monitoring');
 		return;
 	}
-	usvisaHelper.monitoringStatus = false;
+	usvisaHelper.isMonitoringActive = false;
 	await interaction.reply('Monitoring stopped');
 }
 export async function execute(interaction: ChatInputCommandInteraction) {

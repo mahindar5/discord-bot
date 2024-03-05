@@ -11,10 +11,10 @@ const errorChannelId = '1214355927872970863';
 class USVisaDatesTasker {
 	configuration: USVisaConfiguration;
 	client: Client<boolean>;
-	desiredDate: string = '2024-12-31';
+	targetDate: string = '2024-12-31';
 	retryInterval: number = 60000;
 	defaultHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
-	monitoringStatus: boolean = true;
+	isMonitoringActive: boolean = true;
 	cookieData: string = '';
 
 	constructor(client: Client, config: USVisaConfiguration) {
@@ -27,44 +27,49 @@ class USVisaDatesTasker {
 	 * @description Run the task
 	 * @returns {Promise<void>}
 	 */
-	async run() {
+	async monitorVisaDatesAvailability() {
 		try {
-			if (!this.monitoringStatus) {
-				this.scheduleNextRun();
+			if (!this.isMonitoringActive) {
+				this.scheduleNextCheck();
 				return;
 			}
 
-			let dates = await this.getDays();
+			let availableDates = await this.fetchAvailableDates();
 
-			if ('error' in dates) {
+			if ('error' in availableDates) {
 				await this.signIn();
-				dates = await this.getDays();
+				availableDates = await this.fetchAvailableDates();
 			}
 
-			this.processDates(dates);
-			this.scheduleNextRun();
+			this.processAvailableDates(availableDates);
+			this.scheduleNextCheck();
 		} catch (error) {
 			this.handleError(error as Error);
-			this.scheduleNextRun(5);
+			this.scheduleNextCheck(5);
 		}
 	}
 
-	private scheduleNextRun(multiplier = 1) {
-		setTimeout(this.run.bind(this), multiplier * this.retryInterval);
+	private scheduleNextCheck(multiplier = 1) {
+		setTimeout(this.monitorVisaDatesAvailability.bind(this), multiplier * this.retryInterval);
 	}
 
-	private processDates(dates: DateResponse) {
-		if ('error' in dates) throw new Error(dates.error);
-		const availableDates = dates.map(date => date.date).join('\n');
-		this.sendEmbedMessageToChannel(datesChannelId, [{ name: 'Available dates', value: availableDates || 'No dates available' }]);
+	private processAvailableDates(datesResponse: DateResponse) {
+		if ('error' in datesResponse) {
+			throw new Error(datesResponse.error);
+		}
+		const availableDates = datesResponse.map(date => date.date);
+		const availableDatesString = availableDates.join('\n');
+		this.sendEmbedMessageToChannel(datesChannelId, [{ name: 'Available dates ', value: availableDatesString || 'No dates available' }]);
 
-		const sortedDates = dates.filter(date => date.date < this.desiredDate).sort((a, b) => a.date - b.date);
-		const earliestDate = sortedDates.length > 0 ? sortedDates[0].date : null;
+		const datesBeforeTarget = availableDates.filter(date => date < this.targetDate);
+		datesBeforeTarget.sort();
 
-		if (earliestDate) {
+		if (datesBeforeTarget.length > 0) {
+			const earliestAvailableDate = datesBeforeTarget[0];
+			const availableDatesBeforeTargetString = datesBeforeTarget.join('\n');
 			this.sendEmbedMessageToChannel(earliestDateChannelId, [
-				{ name: 'Earliest date', value: earliestDate },
-				{ name: 'Available dates', value: sortedDates.map(date => date.date).join('\n') },
+				{ name: 'Earliest date', value: earliestAvailableDate },
+				{ name: 'Available dates', value: availableDatesBeforeTargetString },
 			]);
 		}
 	}
@@ -190,7 +195,7 @@ class USVisaDatesTasker {
 	 * stausCode: 401
 	 * {"error":"You need to sign in or sign up before continuing."}
 	 */
-	getDays(): Promise<DateResponse> {
+	fetchAvailableDates(): Promise<DateResponse> {
 		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
 		return this.fetchEndpoint(endpoint);
 	}
