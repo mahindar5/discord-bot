@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import usvisaHelper from '../../helpers/usvisa-helper';
 
 export const data = new SlashCommandBuilder()
-	.setName('set-desired-date')
+	.setName('setDesiredDate')
 	.setDescription('Set your desired US visa appointment date')
 	.addStringOption(option =>
 		option.setName('date')
