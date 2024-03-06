@@ -4,7 +4,7 @@ import globalConfig from '../config';
 import { availableBookingsChannelId, errorReportingChannelId } from '../constants/CineplexChannelId';
 
 class CineplexHelper {
-	isMonitoringActive: boolean = true;
+	isMonitoringActive: boolean = false;
 	client: Client<boolean>;
 	showDate = '3/9/2024';
 	status = 'available';
