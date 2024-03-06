@@ -79,7 +79,7 @@ class USVisaDatesTasker {
 			throw new Error(datesResponse.error);
 		}
 		const availableDates = datesResponse.map(date => date.date);
-		const availableDatesString = availableDates.join('\n');
+		const availableDatesString = availableDates.join(', ');
 		this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates', value: availableDatesString || 'No dates available' }]);
 
 		const datesBeforeTarget = availableDates.filter(date => date < this.targetDate);
