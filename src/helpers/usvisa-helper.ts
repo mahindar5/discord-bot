@@ -93,6 +93,10 @@ class USVisaDatesTasker {
 		}
 
 		const status = availableDatesString ? 'Dates available' : 'No dates available';
+		await this.postStatusChange(status);
+	}
+
+	private async postStatusChange(status: string) {
 		if (status !== this.lastStatus) {
 			this.lastStatus = status;
 			await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: status }]);
@@ -233,9 +237,10 @@ class USVisaDatesTasker {
 	private async handleError(error: Error) {
 		await this.sendEmbedMessageToChannel(errorReportingChannelId, [
 			{ name: error.name, value: error.message },
-			{ name: 'Stack', value: JSON.stringify(error.stack)	},
+			{ name: 'Stack', value: error.stack || 'No stack'	},
 			{ name: 'Full error', value: JSON.stringify(error) },
 		]);
+		await this.postStatusChange('Error');
 	}
 }
 
