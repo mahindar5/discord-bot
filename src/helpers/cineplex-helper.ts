@@ -2,9 +2,8 @@ import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
 import { availableBookingsChannelId, errorReportingChannelId } from '../constants/CineplexChannelId';
-
+import { Settings } from '../constants/Settings';
 class CineplexHelper {
-	isMonitoringActive: boolean = false;
 	client: Client<boolean>;
 	showDate = '3/9/2024';
 	status = 'available';
@@ -14,7 +13,7 @@ class CineplexHelper {
 
 	public async monitorCineplexesAvailability(): Promise<void> {
 		try {
-			if (!this.isMonitoringActive) {
+			if (!Settings.cineplex.isMonitoringActive) {
 				this.scheduleNextCheck();
 				return;
 			}

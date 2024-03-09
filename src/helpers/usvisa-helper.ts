@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
+import { Settings } from '../constants/Settings';
 import { availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId } from '../constants/USVisaChannelIds';
 import { DateResponse } from '../types/DateResponse';
 import { TimeResponse } from '../types/TimeResponse';
@@ -9,10 +10,8 @@ import { USVisaConfiguration } from '../types/USVisaConfig';
 class USVisaDatesTasker {
 	configuration: USVisaConfiguration;
 	client: Client<boolean>;
-	targetDate: string = '2024-12-31';
 	retryInterval: number = 60000;
 	defaultHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
-	isMonitoringActive: boolean = true;
 	cookieData: string = '';
 
 	constructor(client: Client, config: USVisaConfiguration) {
@@ -54,7 +53,7 @@ class USVisaDatesTasker {
 	 */
 	async monitorVisaDatesAvailability(): Promise<void> {
 		try {
-			if (!this.isMonitoringActive) {
+			if (!Settings.usvisa.isMonitoringActive) {
 				this.scheduleNextCheck();
 				return;
 			}
@@ -82,7 +81,7 @@ class USVisaDatesTasker {
 		const availableDatesString = availableDates.join(', ');
 		this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates', value: availableDatesString || 'No dates available' }]);
 
-		const datesBeforeTarget = availableDates.filter(date => date < this.targetDate);
+		const datesBeforeTarget = availableDates.filter(date => date < Settings.usvisa.targetDate);
 		datesBeforeTarget.sort();
 
 		if (datesBeforeTarget.length > 0) {

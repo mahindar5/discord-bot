@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import usvisaHelper from '../../helpers/usvisa-helper';
+import { Settings } from '../../constants/Settings';
 
 export const data = new SlashCommandBuilder()
 	.setName('setdesireddate')
@@ -15,6 +15,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.reply('Invalid date');
 		return;
 	}
-	usvisaHelper.targetDate = date;
-	await interaction.reply(`Your desired US visa appointment date has been set to ${usvisaHelper.targetDate}`);
+	Settings.usvisa.targetDate = date;
+
+	await interaction.reply(`Your desired US visa appointment date has been set to ${Settings.usvisa.targetDate}`);
 }

@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, CommandInteraction, SlashCommandBuilder } from 'discord.js';
-import usvisaHelper from '../../helpers/usvisa-helper';
+import { Settings } from '../../constants/Settings';
 
 export const data = new SlashCommandBuilder()
 	.setName('monitor')
@@ -14,19 +14,19 @@ export const data = new SlashCommandBuilder()
 			.setDescription('Stop monitoring for US visa appointment availability'));
 
 async function startMonitor(interaction: CommandInteraction) {
-	if (usvisaHelper.isMonitoringActive) {
+	if (Settings.usvisa.isMonitoringActive) {
 		await interaction.reply('Already monitoring');
 		return;
 	}
-	usvisaHelper.isMonitoringActive = true;
+	Settings.usvisa.isMonitoringActive = true;
 	await interaction.reply('Monitoring started');
 }
 async function stopMonitor(interaction: CommandInteraction) {
-	if (!usvisaHelper.isMonitoringActive) {
+	if (!Settings.usvisa.isMonitoringActive) {
 		await interaction.reply('Not monitoring');
 		return;
 	}
-	usvisaHelper.isMonitoringActive = false;
+	Settings.usvisa.isMonitoringActive = false;
 	await interaction.reply('Monitoring stopped');
 }
 export async function execute(interaction: ChatInputCommandInteraction) {

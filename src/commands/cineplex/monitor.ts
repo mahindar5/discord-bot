@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, CommandInteraction, SlashCommandBuilder } from 'discord.js';
-import cineplexHelper from '../../helpers/cineplex-helper';
+import { Settings } from '../../constants/Settings';
 
 export const data = new SlashCommandBuilder()
 	.setName('cineplex')
@@ -14,19 +14,19 @@ export const data = new SlashCommandBuilder()
 			.setDescription('Stop monitoring for Cineplex booking availability'));
 
 async function startMonitor(interaction: CommandInteraction) {
-	if (cineplexHelper.isMonitoringActive) {
+	if (Settings.cineplex.isMonitoringActive) {
 		await interaction.reply('Already monitoring');
 		return;
 	}
-	cineplexHelper.isMonitoringActive = true;
+	Settings.cineplex.isMonitoringActive = true;
 	await interaction.reply('Monitoring started');
 }
 async function stopMonitor(interaction: CommandInteraction) {
-	if (!cineplexHelper.isMonitoringActive) {
+	if (!Settings.cineplex.isMonitoringActive) {
 		await interaction.reply('Not monitoring');
 		return;
 	}
-	cineplexHelper.isMonitoringActive = false;
+	Settings.cineplex.isMonitoringActive = false;
 	await interaction.reply('Monitoring stopped');
 }
 export async function execute(interaction: ChatInputCommandInteraction) {
