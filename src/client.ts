@@ -1,6 +1,7 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-import config from './config';
 import * as commandModules from './commands';
+import config from './config';
+import usvisaHelper from './helpers/usvisa-helper';
 
 const commands = Object(commandModules);
 
@@ -15,6 +16,7 @@ export const client = new Client({
 
 client.once(Events.ClientReady, clients => {
 	console.log(`Ready!${clients.user?.tag}`);
+	usvisaHelper.monitorVisaDatesAvailability();
 });
 
 client.on(Events.InteractionCreate, async interaction => {
