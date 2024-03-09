@@ -97,17 +97,19 @@ class USVisaDatesTasker {
 		await this.postStatusChange(status);
 	}
 
-	private async postStatusChange(status: string) {
+	private async postStatusChange(newStatus: string) {
 		const targetChannel = await this.getChannel(lastStatusChannelId);
-		targetChannel.messages.fetch({ limit: 1 }).then(async messages => {
-			const lastMessage = messages.first();
-			if (lastMessage) {
-				const lastStatus = lastMessage.embeds?.[0]?.data?.fields?.[0]?.value;
-				if (status !== lastStatus) {
-					await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: status }]);
-				}
+		const messages = await targetChannel.messages.fetch({ limit: 1 });
+		const lastMessage = messages.first();
+
+		if (lastMessage) {
+			const lastStatusField = lastMessage.embeds?.[0]?.data?.fields?.find(field => field.name == 'Status');
+			const lastStatus = lastStatusField?.value;
+
+			if (newStatus !== lastStatus) {
+				await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: newStatus }]);
 			}
-		});
+		}
 	}
 
 	/**
