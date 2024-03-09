@@ -117,12 +117,14 @@ class USVisaDatesTasker {
 		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
 		const targetChannel = await this.getChannel(channelId);
 
-		// targetChannel.messages.fetch({ limit: 1 }).then(messages => {
-		// 	const lastMessage = messages.first();
-		// 	if (lastMessage) {
-		// 		console.log(`content: ${lastMessage.content}`);
-		// 	}
-		// });
+		targetChannel.messages.fetch({ limit: 1 }).then(messages => {
+			const lastMessage = messages.first();
+			if (lastMessage) {
+				// read embed content from last message
+				const content = lastMessage.embeds[0]?.description;
+				console.log(`content: ${content}`);
+			}
+		});
 
 		if (targetChannel) {
 			targetChannel.send({ embeds: [embedMessage] });
