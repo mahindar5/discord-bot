@@ -12,7 +12,6 @@ class USVisaDatesTasker {
 	retryInterval: number = 60000;
 	defaultHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
 	cookieData: string = '';
-	lastStatus: string = '';
 
 	constructor(client: Client, config: USVisaConfiguration) {
 		this.configuration = config;
@@ -99,10 +98,16 @@ class USVisaDatesTasker {
 	}
 
 	private async postStatusChange(status: string) {
-		if (status !== this.lastStatus) {
-			this.lastStatus = status;
-			await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: status }]);
-		}
+		const targetChannel = await this.getChannel(lastStatusChannelId);
+		targetChannel.messages.fetch({ limit: 1 }).then(async messages => {
+			const lastMessage = messages.first();
+			if (lastMessage) {
+				const lastStatus = lastMessage.embeds?.[0]?.data?.fields?.[0]?.value;
+				if (status !== lastStatus) {
+					await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: status }]);
+				}
+			}
+		});
 	}
 
 	/**
@@ -116,15 +121,6 @@ class USVisaDatesTasker {
 
 		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
 		const targetChannel = await this.getChannel(channelId);
-
-		targetChannel.messages.fetch({ limit: 1 }).then(messages => {
-			const lastMessage = messages.first();
-			if (lastMessage) {
-				// read embed content from last message
-				const content = lastMessage.embeds[0]?.description;
-				console.log(`content: ${content}`);
-			}
-		});
 
 		if (targetChannel) {
 			targetChannel.send({ embeds: [embedMessage] });
