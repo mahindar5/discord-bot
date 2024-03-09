@@ -9,14 +9,12 @@ import { USVisaConfiguration } from '../types/USVisaConfig';
 
 class USVisaDatesTasker {
 	configuration: USVisaConfiguration;
-	client: Client<boolean>;
 	retryInterval: number = 60000;
 	defaultHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
 	cookieData: string = '';
 	lastStatus: string = '';
 
 	constructor(client: Client, config: USVisaConfiguration) {
-		this.client = client;
 		this.configuration = config;
 	}
 
@@ -111,17 +109,27 @@ class USVisaDatesTasker {
 		console.log(`${pacificStandardTime}: ${messageFields.map(field => `${field.name}: ${field.value}`).join(', ')}`);
 
 		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
-		let targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
-
-		if (!targetChannel) {
-			targetChannel = await discordClient.channels.fetch(channelId) as TextChannel;
-		}
+		const targetChannel = await this.getChannel(channelId);
 
 		if (targetChannel) {
 			targetChannel.send({ embeds: [embedMessage] });
 		} else {
 			console.error(`${pacificStandardTime}: Channel with id ${channelId} not found`);
 		}
+	}
+
+	private async getChannel(channelId: string) {
+		const guild = discordClient.guilds.cache.get(globalConfig.GUILD_ID);
+		if (!guild) {
+			throw new Error('Guild not found');
+		}
+
+		let targetChannel = guild.channels.cache.get(channelId) as TextChannel;
+
+		if (!targetChannel) {
+			targetChannel = await guild.channels.fetch(channelId) as TextChannel;
+		}
+		return targetChannel;
 	}
 
 	private createEmbedMessageWithFields(messageFields: { name: string; value: string }[], pacificStandardTime: string) {
