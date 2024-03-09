@@ -231,7 +231,11 @@ class USVisaDatesTasker {
 	}
 
 	private async handleError(error: Error) {
-		await this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
+		await this.sendEmbedMessageToChannel(errorReportingChannelId, [
+			{ name: error.name, value: error.message },
+			{ name: 'Stack', value: JSON.stringify(error.stack)	},
+			{ name: 'Full error', value: JSON.stringify(error) },
+		]);
 	}
 }
 
