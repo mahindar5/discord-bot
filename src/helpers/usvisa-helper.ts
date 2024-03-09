@@ -83,6 +83,7 @@ class USVisaDatesTasker {
 		const datesBeforeTarget = availableDates.filter(date => date < Settings.usvisa.targetDate);
 		datesBeforeTarget.sort();
 
+		let status = '';
 		if (datesBeforeTarget.length > 0) {
 			const earliestAvailableDate = datesBeforeTarget[0];
 			const availableDatesBeforeTargetString = datesBeforeTarget.join('\n');
@@ -90,9 +91,10 @@ class USVisaDatesTasker {
 				{ name: 'Earliest date', value: earliestAvailableDate },
 				{ name: 'Available dates', value: availableDatesBeforeTargetString },
 			]);
+			status = 'Earliest date available';
+		} else {
+			status = availableDatesString ? 'Dates available' : 'No dates available';
 		}
-
-		const status = availableDatesString ? 'Dates available' : 'No dates available';
 		await this.postStatusChange(status);
 	}
 
@@ -237,7 +239,7 @@ class USVisaDatesTasker {
 	private async handleError(error: Error) {
 		await this.sendEmbedMessageToChannel(errorReportingChannelId, [
 			{ name: error.name, value: error.message },
-			{ name: 'Stack', value: error.stack || 'No stack'	},
+			{ name: 'Stack', value: error.stack || 'No stack' },
 			{ name: 'Full error', value: JSON.stringify(error) },
 		]);
 		await this.postStatusChange('Error');
