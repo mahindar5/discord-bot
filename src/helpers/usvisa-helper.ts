@@ -2,7 +2,7 @@ import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
 import { Settings } from '../constants/Settings';
-import { availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId } from '../constants/USVisaChannelIds';
+import { availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId, lastStatusChannelId } from '../constants/USVisaChannelIds';
 import { DateResponse } from '../types/DateResponse';
 import { TimeResponse } from '../types/TimeResponse';
 import { USVisaConfiguration } from '../types/USVisaConfig';
@@ -13,6 +13,7 @@ class USVisaDatesTasker {
 	retryInterval: number = 60000;
 	defaultHeaders: { 'x-requested-with': string } = { 'x-requested-with': 'XMLHttpRequest' };
 	cookieData: string = '';
+	lastStatus: string = '';
 
 	constructor(client: Client, config: USVisaConfiguration) {
 		this.client = client;
@@ -65,21 +66,21 @@ class USVisaDatesTasker {
 				availableDates = await this.fetchAvailableDates();
 			}
 
-			this.processAvailableDates(availableDates);
+			await this.processAvailableDates(availableDates);
 			this.scheduleNextCheck();
 		} catch (error) {
-			this.handleError(error as Error);
+			await this.handleError(error as Error);
 			this.scheduleNextCheck(5);
 		}
 	}
 
-	private processAvailableDates(datesResponse: DateResponse) {
+	private async processAvailableDates(datesResponse: DateResponse) {
 		if ('error' in datesResponse) {
 			throw new Error(datesResponse.error);
 		}
 		const availableDates = datesResponse.map(date => date.date);
 		const availableDatesString = availableDates.join(', ');
-		this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates', value: availableDatesString || 'No dates available' }]);
+		await this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates', value: availableDatesString || 'No dates available' }]);
 
 		const datesBeforeTarget = availableDates.filter(date => date < Settings.usvisa.targetDate);
 		datesBeforeTarget.sort();
@@ -87,10 +88,16 @@ class USVisaDatesTasker {
 		if (datesBeforeTarget.length > 0) {
 			const earliestAvailableDate = datesBeforeTarget[0];
 			const availableDatesBeforeTargetString = datesBeforeTarget.join('\n');
-			this.sendEmbedMessageToChannel(earliestAvailableDateChannelId, [
+			await this.sendEmbedMessageToChannel(earliestAvailableDateChannelId, [
 				{ name: 'Earliest date', value: earliestAvailableDate },
 				{ name: 'Available dates', value: availableDatesBeforeTargetString },
 			]);
+		}
+
+		const status = availableDatesString ? 'Dates available' : 'No dates available';
+		if (status !== this.lastStatus) {
+			this.lastStatus = status;
+			await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: status }]);
 		}
 	}
 
@@ -99,12 +106,16 @@ class USVisaDatesTasker {
 	 * @param channelId - The ID of the channel to send the message to.
 	 * @param messageFields - An array of objects representing the fields of the message.
 	 */
-	private sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
+	private async sendEmbedMessageToChannel(channelId: string, messageFields: { name: string; value: string }[]) {
 		const pacificStandardTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 		console.log(`${pacificStandardTime}: ${messageFields.map(field => `${field.name}: ${field.value}`).join(', ')}`);
 
 		const embedMessage = this.createEmbedMessageWithFields(messageFields, pacificStandardTime);
-		const targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
+		let targetChannel = discordClient.channels.cache.get(channelId) as TextChannel;
+
+		if (!targetChannel) {
+			targetChannel = await discordClient.channels.fetch(channelId) as TextChannel;
+		}
 
 		if (targetChannel) {
 			targetChannel.send({ embeds: [embedMessage] });
@@ -207,8 +218,8 @@ class USVisaDatesTasker {
 		setTimeout(this.monitorVisaDatesAvailability.bind(this), multiplier * this.retryInterval);
 	}
 
-	private handleError(error: Error) {
-		this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
+	private async handleError(error: Error) {
+		await this.sendEmbedMessageToChannel(errorReportingChannelId, [{ name: error.name, value: error.message }]);
 	}
 }
 
