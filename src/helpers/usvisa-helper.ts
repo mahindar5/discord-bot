@@ -119,10 +119,10 @@ class USVisaDatesTasker {
 	}
 
 	private async getChannel(channelId: string) {
-		let guild = discordClient.guilds.cache.get(globalConfig.GUILD_ID);
-		if (!guild) {
-			guild = await discordClient.guilds.fetch(globalConfig.GUILD_ID);
-		}
+		const guild = discordClient.guilds.cache.get(globalConfig.GUILD_ID);
+		// if (!guild) {
+		// 	guild = await discordClient.guilds.fetch(globalConfig.GUILD_ID);
+		// }
 
 		if (!guild) {
 			throw new Error(`Guild with id ${globalConfig.GUILD_ID} not found`);
