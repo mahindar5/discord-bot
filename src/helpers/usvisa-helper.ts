@@ -194,7 +194,8 @@ class USVisaDatesTasker {
 		const sessionId = signInResponse.headers.get('Session-Id');
 		const email = signInResponse.headers.get('X-Yatri-Email');
 		if (sessionId && email) {
-			console.log(`${new Date().toLocaleString()}: Sign in successful `);
+			const pacificStandardTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+			console.log(`${pacificStandardTime}: Sign in successful `);
 			return true;
 		}
 		throw new Error('Sign in failed');
