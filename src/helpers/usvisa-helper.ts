@@ -38,7 +38,13 @@ class USVisaDatesTasker {
 			const dateData = await this.fetchEndpoint(endpoint, true);
 			return dateData;
 		} catch (error) {
-			const message = (error as Error).message;
+			const error2 = error as Error;
+			const message = [
+				`Url: ${this.configuration.url}${endpoint}`,
+				`Error: ${error2.message}`,
+				`Stack: ${error2.stack}`,
+				`Full error: ${JSON.stringify(error2)}`,
+			].join('\n');
 			return { error: message };
 		}
 	}
