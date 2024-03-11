@@ -250,6 +250,7 @@ class USVisaDatesTasker {
 			{ name: 'Full error', value: JSON.stringify(error) },
 		]);
 		await this.postStatusChange('Error');
+		this.cookieData = '';
 	}
 }
 
