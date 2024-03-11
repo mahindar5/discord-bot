@@ -31,9 +31,16 @@ class USVisaDatesTasker {
 	 * Retrieves the available appointment dates.
 	 * @returns A Promise that resolves to a DateResponse object containing the available appointment dates.
 	 */
-	fetchAvailableDates(): Promise<DateResponse> {
+	async fetchAvailableDates(): Promise<DateResponse> {
 		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
-		return this.fetchEndpoint(endpoint, true);
+
+		try {
+			const dateData = await this.fetchEndpoint(endpoint, true);
+			return dateData;
+		} catch (error) {
+			const message = (error as Error).message;
+			return { error: message };
+		}
 	}
 
 	/**
