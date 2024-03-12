@@ -40,10 +40,10 @@ class USVisaDatesTasker {
 		} catch (error) {
 			const error2 = error as Error;
 			const message = [
-				`Url: ${this.configuration.url}${endpoint}`,
+				// `Url: ${this.configuration.url}${endpoint}`,
 				`Error: ${error2.message}`,
-				`Stack: ${error2.stack}`,
-				`Full error: ${JSON.stringify(error2)}`,
+				// `Stack: ${error2.stack}`,
+				// `Full error: ${JSON.stringify(error2)}`,
 			].join('\n');
 			return { error: message };
 		}
