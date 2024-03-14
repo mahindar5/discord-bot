@@ -34,19 +34,8 @@ class USVisaDatesTasker {
 	async fetchAvailableDates(): Promise<DateResponse> {
 		const endpoint = `/en-ca/niv/schedule/${this.configuration.scheduleNumber}/appointment/days/${this.configuration.centerNumber}.json?appointments[expedite]=false`;
 
-		try {
-			const dateData = await this.fetchEndpoint(endpoint, true);
-			return dateData;
-		} catch (error) {
-			const error2 = error as Error;
-			const message = [
-				// `Url: ${this.configuration.url}${endpoint}`,
-				`Error: ${error2.message}`,
-				// `Stack: ${error2.stack}`,
-				// `Full error: ${JSON.stringify(error2)}`,
-			].join('\n');
-			return { error: message };
-		}
+		const dateData = await this.fetchEndpoint(endpoint, true);
+		return dateData;
 	}
 
 	/**
