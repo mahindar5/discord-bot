@@ -2,7 +2,7 @@ import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
 import { Settings } from '../constants/Settings';
-import { availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId, lastStatusChannelId } from '../constants/USVisaChannelIds';
+import { availableDates2ChannelId, availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId, lastStatusChannelId } from '../constants/USVisaChannelIds';
 import { DateResponse } from '../types/DateResponse';
 import { TimeResponse } from '../types/TimeResponse';
 import { USVisaConfiguration } from '../types/USVisaConfig';
@@ -80,6 +80,7 @@ class USVisaDatesTasker {
 		const availableDates = datesResponse.map(date => date.date);
 		const availableDatesString = availableDates.join(', ');
 		await this.sendEmbedMessageToChannel(availableDatesChannelId, [{ name: 'Available dates', value: availableDatesString || 'No dates available' }]);
+		await this.postFirstDate(availableDates);
 
 		const datesBeforeTarget = availableDates.filter(date => date < Settings.usvisa.targetDate);
 		datesBeforeTarget.sort();
@@ -99,19 +100,28 @@ class USVisaDatesTasker {
 		await this.postStatusChange(status);
 	}
 
-	private async postStatusChange(newStatus: string) {
-		const targetChannel = await this.getChannel(lastStatusChannelId);
+	private async postUpdate(channelId: string, fieldName: string, newValue: string) {
+		const targetChannel = await this.getChannel(channelId);
 		const messages = await targetChannel.messages.fetch({ limit: 1 });
 		const lastMessage = messages.first();
 
 		if (lastMessage) {
-			const lastStatusField = lastMessage.embeds?.[0]?.data?.fields?.find(field => field.name == 'Status');
-			const lastStatus = lastStatusField?.value;
+			const lastField = lastMessage.embeds?.[0]?.data?.fields?.find(field => field.name == fieldName);
+			const lastValue = lastField?.value;
 
-			if (newStatus !== lastStatus) {
-				await this.sendEmbedMessageToChannel(lastStatusChannelId, [{ name: 'Status', value: newStatus }]);
+			if (newValue !== lastValue) {
+				await this.sendEmbedMessageToChannel(channelId, [{ name: fieldName, value: newValue }]);
 			}
 		}
+	}
+
+	private async postFirstDate(availableDates: string[]) {
+		const firstDate = availableDates.sort()[0];
+		await this.postUpdate(availableDates2ChannelId, 'Date', firstDate || 'No date available');
+	}
+
+	private async postStatusChange(newStatus: string) {
+		await this.postUpdate(lastStatusChannelId, 'Status', newStatus);
 	}
 
 	/**
