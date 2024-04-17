@@ -105,13 +105,11 @@ class USVisaDatesTasker {
 		const messages = await targetChannel.messages.fetch({ limit: 1 });
 		const lastMessage = messages.first();
 
-		if (lastMessage) {
-			const lastField = lastMessage.embeds?.[0]?.data?.fields?.find(field => field.name == fieldName);
-			const lastValue = lastField?.value;
+		const lastField = lastMessage?.embeds?.[0]?.data?.fields?.find(field => field.name == fieldName);
+		const lastValue = lastField?.value;
 
-			if (newValue !== lastValue) {
-				await this.sendEmbedMessageToChannel(channelId, [{ name: fieldName, value: newValue }]);
-			}
+		if (newValue !== lastValue) {
+			await this.sendEmbedMessageToChannel(channelId, [{ name: fieldName, value: newValue }]);
 		}
 	}
 
