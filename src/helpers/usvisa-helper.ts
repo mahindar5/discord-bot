@@ -2,7 +2,7 @@ import { Client, EmbedBuilder, TextChannel } from 'discord.js';
 import { client as discordClient } from '../client';
 import globalConfig from '../config';
 import { Settings } from '../constants/Settings';
-import { availableDates2ChannelId, availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId, lastStatusChannelId } from '../constants/USVisaChannelIds';
+import { availableDates2ChannelId, availableDatesChannelId, earliestAvailableDateChannelId, errorReportingChannelId, lastStatusChannelId, recordsChannelId } from '../constants/USVisaChannelIds';
 import { DateResponse } from '../types/DateResponse';
 import { TimeResponse } from '../types/TimeResponse';
 import { USVisaConfiguration } from '../types/USVisaConfig';
@@ -100,7 +100,7 @@ class USVisaDatesTasker {
 		await this.postStatusChange(status);
 	}
 
-	private async postUpdate(channelId: string, fieldName: string, newValue: string) {
+	private async postUpdate(channelId: string, fieldName: string, newValue: string, lessThanPrev?: boolean) {
 		const targetChannel = await this.getChannel(channelId);
 		const messages = await targetChannel.messages.fetch({ limit: 1 });
 		const lastMessage = messages.first();
@@ -108,7 +108,11 @@ class USVisaDatesTasker {
 		const lastField = lastMessage?.embeds?.[0]?.data?.fields?.find(field => field.name == fieldName);
 		const lastValue = lastField?.value;
 
-		if (newValue !== lastValue) {
+		if (lessThanPrev) {
+			if (lastValue && newValue < lastValue) {
+				await this.sendEmbedMessageToChannel(channelId, [{ name: fieldName, value: newValue }]);
+			}
+		} else if (newValue !== lastValue) {
 			await this.sendEmbedMessageToChannel(channelId, [{ name: fieldName, value: newValue }]);
 		}
 	}
@@ -116,6 +120,7 @@ class USVisaDatesTasker {
 	private async postFirstDate(availableDates: string[]) {
 		const firstDate = availableDates.sort()[0];
 		await this.postUpdate(availableDates2ChannelId, 'Date', firstDate || 'No date available');
+		if (firstDate) await this.postUpdate(recordsChannelId, 'Date', firstDate, true);
 	}
 
 	private async postStatusChange(newStatus: string) {

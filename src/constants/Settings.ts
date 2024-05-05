@@ -6,4 +6,8 @@ export const Settings = {
 	cineplex: {
 		isMonitoringActive: false,
 	},
+	icbc: {
+		isMonitoringActive: false,
+		dates: ['2024-12-31'],
+	},
 };
