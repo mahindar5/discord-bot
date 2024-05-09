@@ -109,7 +109,7 @@ class USVisaDatesTasker {
 		const lastValue = lastField?.value;
 
 		if (lessThanPrev) {
-			if (lastValue && newValue < lastValue) {
+			if (!lastValue || (newValue && newValue < lastValue)) {
 				await this.sendEmbedMessageToChannel(channelId, [{ name: fieldName, value: newValue }]);
 			}
 		} else if (newValue !== lastValue) {
