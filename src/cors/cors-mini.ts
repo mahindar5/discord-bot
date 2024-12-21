@@ -18,7 +18,8 @@ function withCORS(headers: http.OutgoingHttpHeaders, req: http.IncomingMessage):
 }
 
 function isRequestWithValidAPIKey(req: http.IncomingMessage): boolean {
-	const apiKey = req.headers['x-api-key'] || '';
+	const apiKeyHeader = Object.keys(req.headers).find(key => key.toLowerCase() === 'x-api-key');
+	const apiKey = apiKeyHeader ? req.headers[apiKeyHeader] : '';
 	const isApiKeyAccepted = ALLOWED_KEYS.includes(apiKey as string);
 	console.log(`API key provided: ${apiKey}`);
 	console.log(`Allowed API keys: ${ALLOWED_KEYS.join(', ')}`);
@@ -72,6 +73,13 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
 }
 
 const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
+	// Check for the alive route
+	if (req.url === '/alive') {
+		res.writeHead(200, { 'Content-Type': 'text/plain' });
+		res.end('Alive Test');
+		return;
+	}
+
 	// Check for the API key
 	if (!isRequestWithValidAPIKey(req)) {
 		res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -83,13 +91,6 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
 	if (req.method === 'OPTIONS') {
 		res.writeHead(200, withCORS({}, req));
 		res.end();
-		return;
-	}
-
-	// Check for the alive route
-	if (req.url === '/alive') {
-		res.writeHead(200, { 'Content-Type': 'text/plain' });
-		res.end('Alive Test');
 		return;
 	}
 
