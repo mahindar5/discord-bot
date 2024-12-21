@@ -1,2 +1,3 @@
 import './client';
-import './keep_alive';
+import './cors/cors-mini';
+
