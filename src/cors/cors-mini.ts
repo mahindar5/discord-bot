@@ -19,7 +19,11 @@ function withCORS(headers: http.OutgoingHttpHeaders, req: http.IncomingMessage):
 
 function isRequestWithValidAPIKey(req: http.IncomingMessage): boolean {
 	const apiKey = req.headers['x-api-key'] || '';
-	return ALLOWED_KEYS.includes(apiKey as string);
+	const isApiKeyAccepted = ALLOWED_KEYS.includes(apiKey as string);
+	console.log(`API key provided: ${apiKey}`);
+	console.log(`Allowed API keys: ${ALLOWED_KEYS.join(', ')}`);
+	console.log(`API key ${isApiKeyAccepted ? 'accepted' : 'rejected'}`);
+	return isApiKeyAccepted;
 }
 
 function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
