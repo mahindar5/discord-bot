@@ -80,16 +80,16 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
 		return;
 	}
 
-	// Check for the API key
-	if (!isRequestWithValidAPIKey(req)) {
-		res.writeHead(500, { 'Content-Type': 'text/plain' });
-		res.end();
-		return;
-	}
-
 	// Check for the OPTIONS method
 	if (req.method === 'OPTIONS') {
 		res.writeHead(200, withCORS({}, req));
+		res.end();
+		return;
+	}
+	
+	// Check for the API key
+	if (!isRequestWithValidAPIKey(req)) {
+		res.writeHead(500, { 'Content-Type': 'text/plain' });
 		res.end();
 		return;
 	}
