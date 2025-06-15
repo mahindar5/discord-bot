@@ -50,7 +50,7 @@ jobs:
         cp -r build ../deploy-temp/
         cp package.json ../deploy-temp/ 2>/dev/null || echo "package.json not found, skipping"
         cp package-lock.json ../deploy-temp/ 2>/dev/null || echo "package-lock.json not found, skipping"
-        cp .gitignore ../deploy-temp/ 2>/dev/null || echo ".gitignore not found, skipping"
+        # cp .gitignore ../deploy-temp/ 2>/dev/null || echo ".gitignore not found, skipping"
         
         # Create or switch to render-deploy-branch
         git checkout -B render-deploy-branch
