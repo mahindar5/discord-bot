@@ -38,19 +38,38 @@ jobs:
     - name: Build project
       run: npm run build
     
-    - name: Configure Git
+    - name: Configure Git and Deploy
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        # Remove all files except .git, build folder, and essential files
-        find . -maxdepth 1 -not -name '.git' -not -name 'build' -not -name 'package.json' -not -name 'package-lock.json' -not -name '.gitignore' -delete || true
-        # Copy build contents to root (optional - depends on your deployment needs)
-        # Uncomment the next line if you want build files in the root instead of build folder
-        # cp -r build/* .
-        # Ensure package.json and package-lock.json are present for deployment
-        git checkout HEAD~1 -- package.json package-lock.json || true
+        
+        # Create a temporary directory for deployment files
+        mkdir -p ../deploy-temp
+        
+        # Copy only the files/folders needed for deployment (opt-in approach)
+        cp -r build ../deploy-temp/
+        cp package.json ../deploy-temp/ 2>/dev/null || echo "package.json not found, skipping"
+        cp package-lock.json ../deploy-temp/ 2>/dev/null || echo "package-lock.json not found, skipping"
+        cp .gitignore ../deploy-temp/ 2>/dev/null || echo ".gitignore not found, skipping"
+        
+        # Create or switch to render-deploy-branch
+        git checkout -B render-deploy-branch
+        
+        # Clear the branch (remove all tracked files)
+        git rm -rf . 2>/dev/null || true
+        
+        # Copy deployment files to the branch
+        cp -r ../deploy-temp/* . 2>/dev/null || true
+        cp -r ../deploy-temp/.* . 2>/dev/null || true
+        
+        # Clean up temp directory
+        rm -rf ../deploy-temp
+        
+        # Commit and push changes
         git add .
-        git diff --staged --quiet || git commit -m "Deploy build from commit $(git rev-parse HEAD~1 | cut -c1-7)"
+        git diff --staged --quiet || git commit -m "Deploy build from commit $(git rev-parse main | cut -c1-7)"
+        
+        # Push to render-deploy-branch
         git push origin render-deploy-branch --force
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
