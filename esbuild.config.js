@@ -6,6 +6,7 @@ const config = {
 	bundle: true,
 	platform: 'node',
 	outdir: 'build',
+	minify: true,
 	external: ['discord.js', '@mahindar5/common-lib', 'dotenv']
 };
 
