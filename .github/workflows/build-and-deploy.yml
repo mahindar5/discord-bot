@@ -44,26 +44,42 @@ jobs:
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         
+        # Store the current commit hash for the commit message
+        COMMIT_HASH=$(git rev-parse main | cut -c1-7)
+        
+        # Create a temporary directory outside the repo for clean deployment files
+        mkdir -p /tmp/deploy-clean
+        
+        # Copy ONLY the specific files we need to the temp directory
+        echo "Copying deployment files..."
+        cp -r build /tmp/deploy-clean/ 2>/dev/null && echo "✓ build folder copied" || echo "✗ build folder not found"
+        cp package.json /tmp/deploy-clean/ 2>/dev/null && echo "✓ package.json copied" || echo "✗ package.json not found"
+        cp package-lock.json /tmp/deploy-clean/ 2>/dev/null && echo "✓ package-lock.json copied" || echo "✗ package-lock.json not found"
+        
+        # Verify what we have in temp directory
+        echo "Files in temp deployment directory:"
+        ls -la /tmp/deploy-clean/
+        
         # Create or switch to render-deploy-branch with a fresh start
         git checkout --orphan render-deploy-branch-temp 2>/dev/null || git checkout -B render-deploy-branch-temp
         
-        # Remove all files from the branch to start fresh
+        # Remove all files from the branch to start completely fresh
         git rm -rf . 2>/dev/null || true
-        find . -name ".*" -not -name ".git" -delete 2>/dev/null || true
-        find . -type f -delete 2>/dev/null || true
+        rm -rf * .* 2>/dev/null || true
         
-        # Copy ONLY the specific files we need for deployment
-        cp -r ../build . 2>/dev/null || echo "build folder not found"
-        cp ../package.json . 2>/dev/null || echo "package.json not found"
-        cp ../package-lock.json . 2>/dev/null || echo "package-lock.json not found"
+        # Copy files from our clean temp directory
+        cp -r /tmp/deploy-clean/* . 2>/dev/null || true
         
-        # Verify what we have (debugging)
-        echo "Files in deployment branch:"
+        # Clean up temp directory
+        rm -rf /tmp/deploy-clean
+        
+        # Verify final deployment content
+        echo "Final files in deployment branch:"
         ls -la
         
         # Commit changes
         git add .
-        git diff --staged --quiet || git commit -m "Deploy build from commit $(git rev-parse main | cut -c1-7)"
+        git diff --staged --quiet || git commit -m "Deploy build from commit $COMMIT_HASH"
         
         # Replace the render-deploy-branch completely
         git branch -D render-deploy-branch 2>/dev/null || true
