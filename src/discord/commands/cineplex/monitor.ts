@@ -1,32 +1,32 @@
 import { ChatInputCommandInteraction, CommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { Settings } from '../../constants/Settings';
+import { Settings } from '../../../shared/constants/Settings.js';
 
 export const data = new SlashCommandBuilder()
-	.setName('monitor')
-	.setDescription('Start/Stop monitoring for US visa appointment availability')
+	.setName('cineplex')
+	.setDescription('Start/Stop monitoring for Cineplex booking availability')
 	.addSubcommand(subcommand =>
 		subcommand
 			.setName('start')
-			.setDescription('Start monitoring for US visa appointment availability'))
+			.setDescription('Start monitoring for Cineplex booking availability'))
 	.addSubcommand(subcommand =>
 		subcommand
 			.setName('stop')
-			.setDescription('Stop monitoring for US visa appointment availability'));
+			.setDescription('Stop monitoring for Cineplex booking availability'));
 
 async function startMonitor(interaction: CommandInteraction) {
-	if (Settings.usvisa.isMonitoringActive) {
+	if (Settings.cineplex.isMonitoringActive) {
 		await interaction.reply('Already monitoring');
 		return;
 	}
-	Settings.usvisa.isMonitoringActive = true;
+	Settings.cineplex.isMonitoringActive = true;
 	await interaction.reply('Monitoring started');
 }
 async function stopMonitor(interaction: CommandInteraction) {
-	if (!Settings.usvisa.isMonitoringActive) {
+	if (!Settings.cineplex.isMonitoringActive) {
 		await interaction.reply('Not monitoring');
 		return;
 	}
-	Settings.usvisa.isMonitoringActive = false;
+	Settings.cineplex.isMonitoringActive = false;
 	await interaction.reply('Monitoring stopped');
 }
 export async function execute(interaction: ChatInputCommandInteraction) {

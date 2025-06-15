@@ -20,12 +20,11 @@ if (command === 'watch') {
 	const ctx = await esbuild.context(config);
 	await ctx.watch();
 	console.log('👀 Watching...');
-} else if (command === 'deploy') {
-	// Build deploy commands
+} else if (command === 'deploy') {	// Build deploy commands
 	try {
 		await esbuild.build({
 			...config,
-			entryPoints: ['src/deploy-commands.ts']
+			entryPoints: ['src/discord/deploy-commands.ts']
 		});
 		console.log('✅ Deploy commands built');
 	} catch {

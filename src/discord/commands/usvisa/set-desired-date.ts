@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { Settings } from '../../constants/Settings';
+import { Settings } from '../../../shared/constants/Settings.js';
 
 export const data = new SlashCommandBuilder()
 	.setName('setdesireddate')

@@ -1,10 +1,10 @@
-import * as http from 'http';
-import * as https from 'https';
-import * as url from 'url';
+import { createServer, request as httpRequest, IncomingMessage, OutgoingHttpHeaders, ServerResponse } from 'http';
+import { request as httpsRequest, RequestOptions } from 'https';
+import { parse as parseUrl, UrlWithStringQuery } from 'url';
 
-const ALLOWED_KEYS = [process.env.API_KEY || ''];
+const ALLOWED_KEYS = [process.env.API_KEY].filter(Boolean);
 
-function withCORS(headers: http.OutgoingHttpHeaders, req: http.IncomingMessage): http.OutgoingHttpHeaders {
+function withCORS(headers: OutgoingHttpHeaders, req: IncomingMessage): OutgoingHttpHeaders {
 	headers['access-control-allow-origin'] = '*';
 	if (req.headers['access-control-request-method']) {
 		headers['access-control-allow-methods'] = req.headers['access-control-request-method'];
@@ -17,12 +17,12 @@ function withCORS(headers: http.OutgoingHttpHeaders, req: http.IncomingMessage):
 	return headers;
 }
 
-function isRequestWithValidAPIKey(req: http.IncomingMessage): boolean {
-	const apiKey = req.headers['x-api-key'] || '';
-	return ALLOWED_KEYS.includes(apiKey as string);
+function isRequestWithValidAPIKey(req: IncomingMessage): boolean {
+	const apiKey = req.headers['x-api-key'] as string;
+	return ALLOWED_KEYS.length > 0 && ALLOWED_KEYS.includes(apiKey);
 }
 
-function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
+function proxyRequest(req: IncomingMessage, res: ServerResponse) {
 	const target = req.url?.slice(1);
 
 	if (!target) {
@@ -30,10 +30,9 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
 		res.end('Invalid URL: URL must be in the format /https://example.com');
 		return;
 	}
-
-	let parsedTarget: url.UrlWithStringQuery | null;
+	let parsedTarget: UrlWithStringQuery | null;
 	try {
-		parsedTarget = url.parse(target);
+		parsedTarget = parseUrl(target);
 		if (!parsedTarget.protocol || !parsedTarget.host) {
 			throw new Error('Incomplete URL provided');
 		}
@@ -41,25 +40,20 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
 		res.writeHead(400, { 'Content-Type': 'text/plain' });
 		res.end(`Invalid URL: ${err instanceof Error ? err.message : 'Unknown error'}`);
 		return;
-	}
-
-	const options: https.RequestOptions = {
-		protocol: parsedTarget.protocol || undefined,
-		hostname: parsedTarget.hostname || undefined,
+	}	const options: RequestOptions = {
+		protocol: parsedTarget.protocol,
+		hostname: parsedTarget.hostname,
 		port: parsedTarget.port,
 		path: parsedTarget.path || '/',
 		method: req.method,
-		headers: { ...req.headers, host: parsedTarget.hostname || '' },
-	};
-
-	const protocolHandler = parsedTarget.protocol === 'https:' ? https : http;
-	const proxy = protocolHandler.request(options, (proxyRes) => {
-		if (!proxyRes.headers) proxyRes.headers = {}; // Ensure headers are initialized.
-		res.writeHead(proxyRes.statusCode || 500, withCORS(proxyRes.headers, req));
+		headers: { ...req.headers, host: parsedTarget.hostname || undefined },
+	};	const protocolHandler = parsedTarget.protocol === 'https:' ? httpsRequest : httpRequest;
+	const proxy = protocolHandler(options, (proxyRes: IncomingMessage) => {
+		res.writeHead(proxyRes.statusCode || 500, withCORS(proxyRes.headers || {}, req));
 		proxyRes.pipe(res as unknown as NodeJS.WritableStream, { end: true });
 	});
 
-	proxy.on('error', (err) => {
+	proxy.on('error', (err: Error) => {
 		res.writeHead(500, withCORS({}, req));
 		res.end(`Proxy error: ${err.message}`);
 	});
@@ -67,7 +61,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse) {
 	req.pipe(proxy as unknown as NodeJS.WritableStream, { end: true });
 }
 
-const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
+const server = createServer((req: IncomingMessage, res: ServerResponse) => {
 	// Check for the alive route
 	if (req.url === '/alive') {
 		res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -81,11 +75,10 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
 		res.end();
 		return;
 	}
-	
-	// Check for the API key
+		// Check for the API key
 	if (!isRequestWithValidAPIKey(req)) {
-		res.writeHead(500, { 'Content-Type': 'text/plain' });
-		res.end();
+		res.writeHead(401, withCORS({ 'Content-Type': 'text/plain' }, req));
+		res.end('Unauthorized: Invalid API key');
 		return;
 	}
 

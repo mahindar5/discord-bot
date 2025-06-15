@@ -1,3 +1,3 @@
-import './client';
-import './cors/cors-mini';
+import './discord/client.js';
+import './utilities/cors-mini.js';
 
