@@ -22,6 +22,7 @@
 	},
 	"homepage": "https://github.com/mahindar5/discord-bot#readme",
 	"dependencies": {
+		"@mahindar5/common-lib": "^1.1.88",
 		"discord.js": "^14.14.1",
 		"dotenv": "^16.4.5"
 	},
