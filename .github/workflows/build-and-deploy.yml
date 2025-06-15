@@ -25,9 +25,15 @@ jobs:
       with:
         node-version: 'lts/*'
         cache: 'npm'
-    
+
+    - name: Configure npm for installing packages
+      run: |
+        echo "@mahindar5:registry=https://npm.pkg.github.com" >> ~/.npmrc
+        echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+        echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
     - name: Install dependencies
-      run: npm ci
+      run: npm ci && npm install @mahindar5/common-lib@latest
     
     - name: Build project
       run: npm run build
