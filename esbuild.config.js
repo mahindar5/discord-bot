@@ -7,6 +7,8 @@ const config = {
 	platform: 'node',
 	outdir: 'build',
 	minify: true,
+	legalComments: 'none',
+	treeShaking: true,
 	external: ['discord.js', '@mahindar5/common-lib', 'dotenv']
 };
 
