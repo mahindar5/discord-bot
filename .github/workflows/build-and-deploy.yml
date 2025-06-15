@@ -19,8 +19,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch all history for all branches
-    
+        fetch-depth: 0
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -39,51 +39,28 @@ jobs:
     - name: Build project
       run: npm run build
     
-    - name: Configure Git and Deploy
+    - name: Deploy to Render Branch
       run: |
+        # Configure Git
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         
-        # Store the current commit hash for the commit message
-        COMMIT_HASH=$(git rev-parse main | cut -c1-7)
+        # Get commit hash for message
+        COMMIT_HASH=$(git rev-parse --short HEAD)
         
-        # Create a temporary directory outside the repo for clean deployment files
-        mkdir -p /tmp/deploy-clean
+        # Create or switch to deploy branch
+        git checkout -B render-deploy-branch
         
-        # Copy ONLY the specific files we need to the temp directory
-        echo "Copying deployment files..."
-        cp -r build /tmp/deploy-clean/ 2>/dev/null && echo "✓ build folder copied" || echo "✗ build folder not found"
-        cp package.json /tmp/deploy-clean/ 2>/dev/null && echo "✓ package.json copied" || echo "✗ package.json not found"
-        cp package-lock.json /tmp/deploy-clean/ 2>/dev/null && echo "✓ package-lock.json copied" || echo "✗ package-lock.json not found"
+        # Remove everything except build folder and package files
+        find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'build' ! -name 'package.json' ! -name 'package-lock.json' -exec rm -rf {} +
         
-        # Verify what we have in temp directory
-        echo "Files in temp deployment directory:"
-        ls -la /tmp/deploy-clean/
+        # Move build contents to root
+        mv build/* . 2>/dev/null || true
+        rmdir build 2>/dev/null || true
         
-        # Create or switch to render-deploy-branch with a fresh start
-        git checkout --orphan render-deploy-branch-temp 2>/dev/null || git checkout -B render-deploy-branch-temp
-        
-        # Remove all files from the branch to start completely fresh
-        git rm -rf . 2>/dev/null || true
-        rm -rf * .* 2>/dev/null || true
-        
-        # Copy files from our clean temp directory
-        cp -r /tmp/deploy-clean/* . 2>/dev/null || true
-        
-        # Clean up temp directory
-        rm -rf /tmp/deploy-clean
-        
-        # Verify final deployment content
-        echo "Final files in deployment branch:"
-        ls -la
-        
-        # Commit changes
+        # Commit and push
         git add .
-        git diff --staged --quiet || git commit -m "Deploy build from commit $COMMIT_HASH"
-        
-        # Replace the render-deploy-branch completely
-        git branch -D render-deploy-branch 2>/dev/null || true
-        git branch -m render-deploy-branch-temp render-deploy-branch
+        git commit -m "Deploy from commit $COMMIT_HASH" || exit 0
         git push origin render-deploy-branch --force
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
