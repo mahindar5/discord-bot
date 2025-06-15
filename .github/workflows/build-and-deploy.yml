@@ -42,15 +42,14 @@ jobs:
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        
-        # Create a temporary directory for deployment files
+          # Create a temporary directory for deployment files
         mkdir -p ../deploy-temp
         
         # Copy only the files/folders needed for deployment (opt-in approach)
         cp -r build ../deploy-temp/
         cp package.json ../deploy-temp/ 2>/dev/null || echo "package.json not found, skipping"
         cp package-lock.json ../deploy-temp/ 2>/dev/null || echo "package-lock.json not found, skipping"
-        # cp .gitignore ../deploy-temp/ 2>/dev/null || echo ".gitignore not found, skipping"
+        # Note: We don't copy .gitignore because it ignores the build folder we want to deploy
         
         # Create or switch to render-deploy-branch
         git checkout -B render-deploy-branch
@@ -58,9 +57,10 @@ jobs:
         # Clear the branch (remove all tracked files)
         git rm -rf . 2>/dev/null || true
         
-        # Copy deployment files to the branch
-        cp -r ../deploy-temp/* . 2>/dev/null || true
-        cp -r ../deploy-temp/.* . 2>/dev/null || true
+        # Copy deployment files to the branch explicitly (avoid copying everything)
+        cp -r ../deploy-temp/build . 2>/dev/null || true
+        cp ../deploy-temp/package.json . 2>/dev/null || true
+        cp ../deploy-temp/package-lock.json . 2>/dev/null || true
         
         # Clean up temp directory
         rm -rf ../deploy-temp
