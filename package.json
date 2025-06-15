@@ -3,14 +3,13 @@
 	"version": "1.0.0",
 	"description": "",
 	"main": "index.js",
+	"type": "module",
 	"scripts": {
-		"blank": "echo \"This is a blank script\"",
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "tsc",
-		"run": "node build/index.js",
-		"start": "tsc && node build/index.js",
-		"dev": "concurrently \"tsc -w\" \"nodemon build/index.js\"",
-		"deploycmds": "tsc && node build/deploy-commands.js"
+		"build": "node esbuild.config.js",
+		"build:watch": "node esbuild.config.js watch",
+		"start": "npm run build && node build/index.js",
+		"dev": "concurrently \"npm run build:watch\" \"nodemon build/index.js\"",
+		"deploy": "node esbuild.config.js deploy && node build/deploy-commands.js"
 	},
 	"repository": {
 		"type": "git",
@@ -29,6 +28,7 @@
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2",
+		"esbuild": "^0.25.5",
 		"nodemon": "^3.1.0",
 		"typescript": "^5.3.3",
 		"typescript-eslint": "^7.1.0"
