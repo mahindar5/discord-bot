@@ -4,6 +4,7 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
+		"blank": "echo \"This is a blank script\"",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "tsc",
 		"run": "node build/index.js",

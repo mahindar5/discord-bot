@@ -1,0 +1,45 @@
+name: Build and Deploy to Render Branch
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for all branches
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Configure Git
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        # Remove all files except .git, build folder, and essential files
+        find . -maxdepth 1 -not -name '.git' -not -name 'build' -not -name 'package.json' -not -name 'package-lock.json' -not -name '.gitignore' -delete || true
+        # Copy build contents to root (optional - depends on your deployment needs)
+        # Uncomment the next line if you want build files in the root instead of build folder
+        # cp -r build/* .
+        # Ensure package.json and package-lock.json are present for deployment
+        git checkout HEAD~1 -- package.json package-lock.json || true
+        git add .
+        git diff --staged --quiet || git commit -m "Deploy build from commit $(git rev-parse HEAD~1 | cut -c1-7)"
+        git push origin render-deploy-branch --force
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
