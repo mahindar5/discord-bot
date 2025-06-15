@@ -50,13 +50,10 @@ jobs:
         
         # Create or switch to deploy branch
         git checkout -B render-deploy-branch
-        
-        # Remove everything except build folder and package files
+          # Remove everything except build folder and package files
         find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'build' ! -name 'package.json' ! -name 'package-lock.json' -exec rm -rf {} +
         
-        # Move build contents to root
-        mv build/* . 2>/dev/null || true
-        rmdir build 2>/dev/null || true
+        # Keep build folder contents intact (do not move to root)
         
         # Commit and push
         git add .
