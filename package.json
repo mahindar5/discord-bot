@@ -22,7 +22,7 @@
 	},
 	"homepage": "https://github.com/mahindar5/discord-bot#readme",
 	"dependencies": {
-		"@mahindar5/common-lib": "^1.2.353"
+		"@mahindar5/common-lib": "^1.3.60"
 	},
 	"devDependencies": {
 		"esbuild": "^0.25.5",
